@@ -18,13 +18,9 @@ import JDLogo from '../../components/JDLogo';
 type MainTabNav = BottomTabNavigationProp<any>;
 
 const { width } = Dimensions.get('window');
+const CARD_W = width * 0.75;
 
 const POINTS = 250;
-const POINTS_TIERS = [
-  { label: 'Café Grátis', pts: 300, icon: '☕' },
-  { label: 'Sobremesa Grátis', pts: 600, icon: '🍰' },
-  { label: 'Refeição Grátis', pts: 900, icon: '🍽️' },
-];
 
 const RESTAURANTS = [
   {
@@ -64,8 +60,6 @@ export default function HomeScreen() {
   const { user } = useAuthStore();
   const userName = (user as any)?.user_metadata?.name || 'Maria';
 
-  const progressPct = Math.min(POINTS / POINTS_TIERS[2].pts, 1) * 100;
-
   return (
     <View style={styles.root}>
       <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
@@ -85,28 +79,6 @@ export default function HomeScreen() {
           <Text style={styles.pointsLabel}>PONTOS</Text>
         </View>
 
-        {/* Offers progress */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ofertas Grátis!</Text>
-          <Text style={styles.sectionSubtitle}>
-            Faltam apenas {POINTS_TIERS[0].pts - POINTS} pontos para a sua primeira oferta grátis!
-          </Text>
-          <View style={styles.progressBg}>
-            <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
-          </View>
-          <View style={styles.tiers}>
-            {POINTS_TIERS.map((tier) => (
-              <View key={tier.pts} style={styles.tierItem}>
-                <View style={[styles.tierCircle, POINTS >= tier.pts && styles.tierCircleDone]}>
-                  <Text style={styles.tierIcon}>{tier.icon}</Text>
-                </View>
-                <Text style={styles.tierPts}>{tier.pts} pts</Text>
-                <Text style={styles.tierLabel}>{tier.label}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
         {/* Exclusive Offers */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ofertas Exclusivas</Text>
@@ -121,11 +93,13 @@ export default function HomeScreen() {
             <View key={v.id} style={styles.voucher}>
               <Image source={{ uri: v.image }} style={styles.voucherBg} resizeMode="cover" />
               <View style={styles.voucherOverlay} />
-              <Text style={styles.voucherTag}>{v.tag}</Text>
-              <Text style={styles.voucherTitle}>{v.title}</Text>
-              <Text style={styles.voucherValid}>{v.valid}</Text>
-              <View style={styles.voucherBtn}>
-                <Text style={styles.voucherBtnText}>{v.pts}</Text>
+              <View style={styles.voucherContent}>
+                <Text style={styles.voucherTag}>{v.tag}</Text>
+                <Text style={styles.voucherTitle}>{v.title}</Text>
+                <Text style={styles.voucherValid}>{v.valid}</Text>
+                <View style={styles.voucherBtn}>
+                  <Text style={styles.voucherBtnText}>{v.pts}</Text>
+                </View>
               </View>
             </View>
           ))}
@@ -159,8 +133,6 @@ export default function HomeScreen() {
     </View>
   );
 }
-
-const CARD_W = width * 0.82;
 
 const styles = StyleSheet.create({
   root: {
@@ -211,57 +183,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: 4,
   },
-  sectionSubtitle: {
-    fontSize: 11,
-    color: '#757575',
-    marginBottom: 10,
-  },
-  progressBg: {
-    height: 14,
-    borderRadius: 30,
-    backgroundColor: 'rgba(191,153,78,0.35)',
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.gold,
-    borderRadius: 30,
-  },
-  tiers: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 4,
-  },
-  tierItem: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  tierCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: Colors.gold,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tierCircleDone: {
-    backgroundColor: Colors.gold,
-  },
-  tierIcon: {
-    fontSize: 16,
-  },
-  tierPts: {
-    fontSize: 10,
-    color: '#757575',
-  },
-  tierLabel: {
-    fontSize: 9,
-    color: '#757575',
-    textAlign: 'center',
-  },
   voucherScroll: {
     marginHorizontal: -20,
   },
@@ -274,7 +195,6 @@ const styles = StyleSheet.create({
     height: 189,
     borderRadius: 13,
     overflow: 'hidden',
-    position: 'relative',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -288,28 +208,30 @@ const styles = StyleSheet.create({
   },
   voucherOverlay: {
     position: 'absolute',
-    inset: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  voucherContent: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
   },
   voucherTag: {
     color: '#fff',
     fontSize: 14,
-    marginTop: 20,
-    marginLeft: 20,
+    marginBottom: 4,
   },
   voucherTitle: {
     color: Colors.gold,
     fontSize: 19,
     fontWeight: '700',
-    marginLeft: 20,
-    marginTop: 4,
     lineHeight: 24,
+    marginBottom: 16,
   },
   voucherValid: {
     color: '#fff',
     fontSize: 14,
-    marginLeft: 20,
-    marginTop: 16,
+    marginBottom: 12,
   },
   voucherBtn: {
     backgroundColor: Colors.gold,
@@ -317,8 +239,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     alignSelf: 'flex-start',
-    marginLeft: 20,
-    marginTop: 10,
   },
   voucherBtnText: {
     color: '#fff',
@@ -327,7 +247,7 @@ const styles = StyleSheet.create({
   restaurants: {
     flexDirection: 'row',
     gap: 16,
-    marginTop: 12,
+    marginTop: 8,
   },
   restaurantCard: {
     flex: 1,
