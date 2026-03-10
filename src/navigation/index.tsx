@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { USE_MOCK } from '../lib/config';
 import { Colors } from '../lib/theme';
+
+const TAB_ICONS: Record<string, any> = {
+  Home:        require('../assets/tab-home.png'),
+  Carteira:    require('../assets/tab-wallet.png'),
+  Recompensas: require('../assets/tab-gift.png'),
+  Conta:       require('../assets/tab-person.png'),
+};
 
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
@@ -44,8 +50,8 @@ const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
-// Maps tab name → Ionicons name (active / inactive)
-const TAB_ICON_MAP: Record<string, { active: string; inactive: string }> = {
+// Maps tab name → Ionicons name (active / inactive) — kept for reference only
+const _TAB_ICON_MAP: Record<string, { active: string; inactive: string }> = {
   Home:        { active: 'home',            inactive: 'home-outline' },
   Carteira:    { active: 'wallet',          inactive: 'wallet-outline' },
   Ganhar:      { active: 'qr-code',         inactive: 'qr-code-outline' },
@@ -84,7 +90,11 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               activeOpacity={0.85}
             >
               <View style={[styles.ganharCircle, isFocused && styles.ganharCircleActive]}>
-                <Ionicons name="qr-code" size={22} color="#fff" />
+                <Image
+                  source={require('../assets/tab-ganhar-qr.png')}
+                  style={[styles.ganharQrIcon, { tintColor: '#fff' }]}
+                  resizeMode="contain"
+                />
               </View>
               <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]} numberOfLines={1}>
                 {label}
@@ -93,9 +103,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           );
         }
 
-        const iconName = isFocused
-          ? TAB_ICON_MAP[label]?.active
-          : TAB_ICON_MAP[label]?.inactive;
+        const iconSrc = TAB_ICONS[label];
 
         return (
           <TouchableOpacity
@@ -104,11 +112,13 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             style={styles.tabItem}
             activeOpacity={0.85}
           >
-            <Ionicons
-              name={iconName as any}
-              size={22}
-              color={isFocused ? Colors.gold : '#999'}
-            />
+            {iconSrc && (
+              <Image
+                source={iconSrc}
+                style={[styles.tabIcon, { tintColor: isFocused ? Colors.gold : '#888' }]}
+                resizeMode="contain"
+              />
+            )}
             <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]} numberOfLines={1}>
               {label}
             </Text>
@@ -232,5 +242,13 @@ const styles = StyleSheet.create({
   },
   tabLabelActive: {
     color: Colors.gold,
+  },
+  tabIcon: {
+    width: 24,
+    height: 24,
+  },
+  ganharQrIcon: {
+    width: 22,
+    height: 22,
   },
 });
