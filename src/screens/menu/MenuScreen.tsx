@@ -1,172 +1,205 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
-  TextInput,
-  ActivityIndicator,
+  Image,
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useMenu } from '../../hooks/useMenu';
-import { useCartStore } from '../../store/cartStore';
-import PizzaCard from '../../components/PizzaCard';
-import Header from '../../components/Header';
-import { Pizza } from '../../types';
+import { Colors, Assets } from '../../lib/theme';
+import JDLogo from '../../components/JDLogo';
+
+const CATEGORIES = ['Menus', 'Principais', 'Vegetariano', 'Sobremesa'];
+
+const MENU_ITEMS: Record<string, { name: string; price: string }[]> = {
+  Menus: [
+    { name: 'Menu do Dia', price: '9,90€' },
+    { name: 'Menu Executive', price: '14,90€' },
+    { name: 'Menu Família', price: '32,00€' },
+  ],
+  Principais: [
+    { name: 'Medalhões de novilho', price: '12,90€' },
+    { name: 'Escalopes de frango', price: '11,90€' },
+    { name: 'Bifinho de frango grelhados', price: '12,50€' },
+    { name: 'Bacalhau à Brás', price: '14,50€' },
+    { name: 'Salmão grelhado', price: '13,90€' },
+  ],
+  Vegetariano: [
+    { name: 'Risotto de cogumelos', price: '11,50€' },
+    { name: 'Lasanha de legumes', price: '10,90€' },
+    { name: 'Salada Caesar', price: '9,50€' },
+  ],
+  Sobremesa: [
+    { name: 'Pastel de nata', price: '1,50€' },
+    { name: 'Mousse de chocolate', price: '4,90€' },
+    { name: 'Pudim flan', price: '4,50€' },
+    { name: 'Tarte de maçã', price: '5,00€' },
+  ],
+};
+
+const RESTAURANTS = ['Portuguese Lab', 'Pizza Lab'];
 
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();
-  const { data: pizzas, isLoading, error } = useMenu();
-  const { addItem } = useCartStore();
-  const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [activeCategory, setActiveCategory] = useState('Principais');
+  const [activeRestaurant, setActiveRestaurant] = useState('Portuguese Lab');
 
-  const categories = useMemo(() => {
-    const cats = new Set(pizzas?.map((p) => p.category).filter(Boolean) ?? []);
-    return ['All', ...Array.from(cats)];
-  }, [pizzas]);
-
-  const filtered = useMemo(() => {
-    return (pizzas ?? []).filter((p) => {
-      const matchSearch =
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.description.toLowerCase().includes(search.toLowerCase());
-      const matchCat = activeCategory === 'All' || p.category === activeCategory;
-      return matchSearch && matchCat;
-    });
-  }, [pizzas, search, activeCategory]);
+  const items = MENU_ITEMS[activeCategory] ?? [];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Header title="Our Menu" />
+    <View style={styles.root}>
+      <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
+      >
+        {/* Logo */}
+        <View style={styles.logoWrap}>
+          <JDLogo size="small" />
+        </View>
 
-      <View style={styles.searchWrapper}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search pizzas..."
-          placeholderTextColor="#9CA3AF"
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
+        {/* Title */}
+        <View style={styles.titleBlock}>
+          <Text style={styles.subtitle}>Menu</Text>
+          <Text style={styles.title}>{activeRestaurant}</Text>
+        </View>
 
-      {categories.length > 1 && (
+        {/* Category tabs */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categories}
+          contentContainerStyle={styles.catList}
+          style={styles.catScroll}
         >
-          {categories.map((cat) => (
+          {CATEGORIES.map((cat) => (
             <TouchableOpacity
               key={cat}
-              style={[styles.catChip, activeCategory === cat && styles.catChipActive]}
               onPress={() => setActiveCategory(cat)}
+              style={styles.catBtn}
             >
               <Text style={[styles.catText, activeCategory === cat && styles.catTextActive]}>
                 {cat}
               </Text>
+              {activeCategory === cat && <View style={styles.catUnderline} />}
             </TouchableOpacity>
           ))}
         </ScrollView>
-      )}
 
-      {isLoading && (
-        <View style={styles.center}>
-          <ActivityIndicator color="#E63946" size="large" />
-        </View>
-      )}
+        {/* Section heading */}
+        <Text style={styles.sectionHeading}>{activeCategory}</Text>
 
-      {error && (
-        <View style={styles.center}>
-          <Text style={styles.errorText}>Failed to load menu. Pull to refresh.</Text>
-        </View>
-      )}
-
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <PizzaCard
-            pizza={item}
-            onPress={() => {}}
-            onAddToCart={(p: Pizza) => addItem(p)}
-          />
-        )}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.center}>
-              <Text style={styles.emptyText}>No pizzas found</Text>
+        {/* Menu items */}
+        <View style={styles.menuList}>
+          {items.map((item, idx) => (
+            <View key={idx}>
+              <View style={styles.menuRow}>
+                <Text style={styles.menuName}>{item.name}</Text>
+                <View style={styles.menuDots} />
+                <Text style={styles.menuPrice}>{item.price}</Text>
+              </View>
+              {idx < items.length - 1 && <View style={styles.divider} />}
             </View>
-          ) : null
-        }
-      />
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.background,
   },
-  searchWrapper: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  bg: {
+    position: 'absolute',
+    width: 874,
+    height: 874,
+    left: -274,
+    top: 0,
+    opacity: 0.4,
   },
-  searchInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 16,
-    height: 46,
-    fontSize: 15,
-    color: '#111827',
+  scroll: {
+    paddingHorizontal: 20,
   },
-  categories: {
-    paddingHorizontal: 16,
-    gap: 8,
+  logoWrap: {
+    alignItems: 'center',
     marginBottom: 8,
   },
-  catChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    marginRight: 8,
+  titleBlock: {
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  catChipActive: {
-    backgroundColor: '#E63946',
+  subtitle: {
+    fontSize: 26,
+    color: Colors.textPrimary,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '400',
+    color: Colors.gold,
+  },
+  catScroll: {
+    marginHorizontal: -20,
+    marginBottom: 8,
+  },
+  catList: {
+    paddingHorizontal: 20,
+    gap: 24,
+  },
+  catBtn: {
+    paddingBottom: 6,
+    alignItems: 'center',
   },
   catText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontSize: 18,
+    color: Colors.textPrimary,
   },
   catTextActive: {
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
+    fontWeight: '400',
   },
-  list: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 24,
+  catUnderline: {
+    height: 2,
+    width: '100%',
+    backgroundColor: Colors.gold,
+    marginTop: 4,
   },
-  center: {
-    flex: 1,
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.gold,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  menuList: {
+    gap: 0,
+  },
+  menuRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 12,
   },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 15,
+  menuName: {
+    fontSize: 18,
+    color: Colors.textPrimary,
+    flex: 1,
   },
-  emptyText: {
-    color: '#9CA3AF',
-    fontSize: 15,
+  menuDots: {
+    flex: 0.5,
+    height: 1,
+    backgroundColor: '#C8C8C8',
+    marginHorizontal: 8,
+  },
+  menuPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E8E0D5',
   },
 });

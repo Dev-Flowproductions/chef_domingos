@@ -2,197 +2,223 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
+  Image,
+  TouchableOpacity,
+  TextInput,
 } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../navigation';
-import { useAuthStore } from '../../store/authStore';
-import Button from '../../components/Button';
-import Input from '../../components/Input';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { Colors, Assets } from '../../lib/theme';
+import { useAuthStore } from '../../store/authStore';
 
-const schema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string(),
-}).refine((d) => d.password === d.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
-
-type FormData = z.infer<typeof schema>;
-
-interface Props {
-  navigation: NativeStackNavigationProp<AuthStackParamList, 'Register'>;
-}
-
-export default function RegisterScreen({ navigation }: Props) {
-  const { signUp } = useAuthStore();
-  const [loading, setLoading] = useState(false);
+export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
+  const [name, setName] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [newsAccepted, setNewsAccepted] = useState(false);
+  const { signUp } = useAuthStore();
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
-
-  const onSubmit = async (data: FormData) => {
-    setLoading(true);
-    const { error } = await signUp(data.email, data.password, data.name);
-    setLoading(false);
-    if (error) {
-      Alert.alert('Registration failed', error.message);
-    } else {
-      Alert.alert('Success', 'Check your email to confirm your account.');
-    }
+  const handleFinish = async () => {
+    if (!termsAccepted) return;
+    await signUp('demo@example.com', 'password', name || 'Utilizador');
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingTop: insets.top + 24 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
+    <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
+      <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
 
-        <Text style={styles.heading}>Create account</Text>
-        <Text style={styles.subheading}>Join Pizza Lab today</Text>
-
-        <Controller
-          control={control}
-          name="name"
-          render={({ field: { onChange, value } }) => (
-            <Input
-              label="Full Name"
-              placeholder="John Doe"
-              value={value}
-              onChangeText={onChange}
-              error={errors.name?.message}
-            />
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, value } }) => (
-            <Input
-              label="Email"
-              placeholder="your@email.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={value}
-              onChangeText={onChange}
-              error={errors.email?.message}
-            />
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, value } }) => (
-            <Input
-              label="Password"
-              placeholder="••••••••"
-              secureTextEntry
-              secureToggle
-              value={value}
-              onChangeText={onChange}
-              error={errors.password?.message}
-            />
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="confirmPassword"
-          render={({ field: { onChange, value } }) => (
-            <Input
-              label="Confirm Password"
-              placeholder="••••••••"
-              secureTextEntry
-              value={value}
-              onChangeText={onChange}
-              error={errors.confirmPassword?.message}
-            />
-          )}
-        />
-
-        <Button
-          title="Create Account"
-          onPress={handleSubmit(onSubmit)}
-          loading={loading}
-          style={styles.submitBtn}
-        />
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.footerLink}>Sign In</Text>
-          </TouchableOpacity>
+      {/* Logo */}
+      <View style={styles.logoWrap}>
+        <View style={styles.letters}>
+          <Text style={[styles.letter, { color: '#B59363' }]}>J</Text>
+          <Text style={[styles.letter, styles.letterD, { color: '#8E7D65' }]}>D</Text>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+
+      {/* Title + subtitle */}
+      <View style={styles.info}>
+        <Text style={styles.title}>Configuração Inicial</Text>
+        <Text style={styles.body}>
+          Para começarmos, como{'\n'}devemos tratá-lo(a)?
+        </Text>
+      </View>
+
+      {/* Name input */}
+      <View style={styles.inputWrap}>
+        <Ionicons name="person-outline" size={18} color={Colors.gold} />
+        <TextInput
+          style={styles.input}
+          placeholder="O seu nome"
+          placeholderTextColor={Colors.gold}
+          value={name}
+          onChangeText={setName}
+        />
+      </View>
+
+      {/* Checkboxes */}
+      <TouchableOpacity
+        style={styles.checkRow}
+        onPress={() => setTermsAccepted(!termsAccepted)}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+          {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
+        </View>
+        <Text style={styles.checkText}>
+          Li e aceito os{' '}
+          <Text style={styles.link}>Termos e Condições</Text>
+          {' '}e a{' '}
+          <Text style={styles.link}>Política de Privacidade</Text>.
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.checkRow}
+        onPress={() => setNewsAccepted(!newsAccepted)}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.checkbox, newsAccepted && styles.checkboxChecked]}>
+          {newsAccepted && <Text style={styles.checkmark}>✓</Text>}
+        </View>
+        <Text style={styles.checkText}>
+          Aceito receber novidades, promoções e ofertas personalizadas.
+        </Text>
+      </TouchableOpacity>
+
+      {/* Finish button */}
+      <View style={styles.bottom}>
+        <TouchableOpacity
+          style={[styles.finishBtn, !termsAccepted && styles.finishBtnDisabled]}
+          onPress={handleFinish}
+          disabled={!termsAccepted}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.finishText}>Finalizar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#FFFFFF' },
   container: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    flex: 1,
+    backgroundColor: Colors.background,
+    paddingHorizontal: 48,
   },
-  back: {
-    marginBottom: 24,
+  bg: {
+    position: 'absolute',
+    width: 874,
+    height: 874,
+    left: -275,
+    top: 0,
+    opacity: 0.4,
   },
-  backText: {
-    fontSize: 16,
-    color: '#E63946',
-    fontWeight: '500',
+  logoWrap: {
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  heading: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 6,
+  letters: {
+    flexDirection: 'row',
   },
-  subheading: {
-    fontSize: 15,
-    color: '#6B7280',
+  letter: {
+    fontSize: 52,
+    fontStyle: 'italic',
+    fontWeight: '400',
+    lineHeight: 65,
+  },
+  letterD: {
+    marginTop: 5,
+  },
+  info: {
+    alignItems: 'center',
+    marginTop: 36,
     marginBottom: 28,
   },
-  submitBtn: {
-    marginTop: 8,
+  title: {
+    fontSize: 34,
+    fontWeight: '400',
+    color: Colors.gold,
+    textAlign: 'center',
+    marginBottom: 12,
   },
-  footer: {
+  body: {
+    fontSize: 18,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    lineHeight: 28,
+  },
+  inputWrap: {
     flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.gold,
+    borderRadius: 22,
+    height: 48,
+    paddingHorizontal: 16,
+    marginBottom: 24,
+    gap: 10,
+  },
+  input: {
+    flex: 1,
+    fontSize: 18,
+    color: Colors.gold,
+  },
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    gap: 12,
+  },
+  checkbox: {
+    width: 28,
+    height: 28,
+    borderWidth: 2,
+    borderColor: Colors.gold,
+    borderRadius: 6,
+    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
+    flexShrink: 0,
   },
-  footerText: {
-    fontSize: 14,
-    color: '#6B7280',
+  checkboxChecked: {
+    backgroundColor: Colors.gold,
   },
-  footerLink: {
-    fontSize: 14,
-    color: '#E63946',
+  checkmark: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '700',
+  },
+  checkText: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.textPrimary,
+    lineHeight: 22,
+  },
+  link: {
+    textDecorationLine: 'underline',
+  },
+  bottom: {
+    position: 'absolute',
+    bottom: 48,
+    left: 48,
+    right: 48,
+  },
+  finishBtn: {
+    backgroundColor: Colors.gold,
+    height: 48,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  finishBtnDisabled: {
+    opacity: 0.5,
+  },
+  finishText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '400',
   },
 });
