@@ -1,0 +1,5 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 32 32" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+<g id="Wallet">
+<path id="Vector" d="M26.6667 12.9524V8.38095C26.6667 6.6978 25.4728 5.33333 24 5.33333H5.33333C3.86057 5.33333 2.66667 6.6978 2.66667 8.38095V23.6191C2.66667 25.3023 3.86057 26.6667 5.33333 26.6667H24C25.4728 26.6667 26.6667 25.3023 26.6667 23.6191V19.0476M29.3333 12.9524H21.3333C19.8605 12.9524 18.6667 14.3168 18.6667 16C18.6667 17.6832 19.8605 19.0476 21.3333 19.0476H29.3333V12.9524Z" stroke="var(--stroke-0, #666666)" stroke-width="2.13333" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

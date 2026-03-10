@@ -50,7 +50,7 @@ export default function MenuScreen() {
 
   return (
     <View style={styles.root}>
-      <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}

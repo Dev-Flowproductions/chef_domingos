@@ -26,12 +26,12 @@ const RESTAURANTS = [
   {
     id: '1',
     name: 'Portuguese Lab',
-    image: 'https://www.figma.com/api/mcp/asset/5c74d365-838a-4db9-b3eb-956c553e5867',
+    image: require('../../assets/portuguese-lab-food.jpg'),
   },
   {
     id: '2',
     name: 'Pizza Lab',
-    image: 'https://www.figma.com/api/mcp/asset/5c74d365-838a-4db9-b3eb-956c553e5867',
+    image: require('../../assets/pizza-lab-food.jpg'),
   },
 ];
 
@@ -42,7 +42,7 @@ const VOUCHERS = [
     title: '2ª Pizza com 50%\nde Desconto',
     valid: 'Válido no Pizza Lab',
     pts: '100 Pontos',
-    image: 'https://www.figma.com/api/mcp/asset/5c74d365-838a-4db9-b3eb-956c553e5867',
+    image: require('../../assets/pizza-lab-food.jpg'),
   },
   {
     id: '2',
@@ -50,7 +50,7 @@ const VOUCHERS = [
     title: 'Sobremesa\nGrátis',
     valid: 'Válido no Portuguese Lab',
     pts: '200 Pontos',
-    image: 'https://www.figma.com/api/mcp/asset/5c74d365-838a-4db9-b3eb-956c553e5867',
+    image: require('../../assets/portuguese-lab-food.jpg'),
   },
 ];
 
@@ -62,7 +62,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
@@ -91,7 +91,7 @@ export default function HomeScreen() {
         >
           {VOUCHERS.map((v) => (
             <View key={v.id} style={styles.voucher}>
-              <Image source={{ uri: v.image }} style={styles.voucherBg} resizeMode="cover" />
+              <Image source={v.image} style={styles.voucherBg} resizeMode="cover" />
               <View style={styles.voucherOverlay} />
               <View style={styles.voucherContent}>
                 <Text style={styles.voucherTag}>{v.tag}</Text>
@@ -116,11 +116,9 @@ export default function HomeScreen() {
                 onPress={() => navigation.navigate('Menu')}
                 activeOpacity={0.9}
               >
-                <Image source={{ uri: r.image }} style={styles.restaurantImg} resizeMode="cover" />
+                <Image source={r.image} style={styles.restaurantImg} resizeMode="cover" />
                 <View style={styles.restaurantFooter}>
-                  <View style={styles.restaurantLogo}>
-                    <Text style={styles.restaurantLogoText}>L</Text>
-                  </View>
+                  <Image source={require('../../assets/restaurant-logo.png')} style={styles.restaurantLogo} resizeMode="contain" />
                   <Text style={styles.restaurantName}>{r.name}</Text>
                 </View>
               </TouchableOpacity>
@@ -270,18 +268,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   restaurantLogo: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#222',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -22,
-  },
-  restaurantLogoText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    marginTop: -27,
+    backgroundColor: '#fff',
   },
   restaurantName: {
     fontSize: 15,

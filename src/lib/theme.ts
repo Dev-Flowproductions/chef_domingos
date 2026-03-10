@@ -60,7 +60,7 @@ export const Radius = {
   badge: 30,
 };
 
-// Figma background illustration asset (used as watermark on all screens)
+// Background illustration asset (used as watermark on all screens)
 export const Assets = {
-  bgIllustration: 'https://www.figma.com/api/mcp/asset/14795f14-59e4-4617-88a0-576152401558',
+  bgIllustration: require('../assets/bg-illustration.jpg'),
 };

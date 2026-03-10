@@ -10,7 +10,7 @@ export default function ScreenWrapper({ children }: ScreenWrapperProps) {
   return (
     <View style={styles.container}>
       <Image
-        source={{ uri: Assets.bgIllustration }}
+        source={Assets.bgIllustration}
         style={styles.bg}
         resizeMode="cover"
       />
