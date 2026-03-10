@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import RootNavigator from './src/navigation';
@@ -14,11 +15,19 @@ const queryClient = new QueryClient({
 });
 
 function AppBootstrap() {
-  const { initialize } = useAuthStore();
+  const { initialize, loading } = useAuthStore();
 
   useEffect(() => {
     initialize();
   }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F5F0' }}>
+        <ActivityIndicator size="large" color="#BF994E" />
+      </View>
+    );
+  }
 
   return <RootNavigator />;
 }
