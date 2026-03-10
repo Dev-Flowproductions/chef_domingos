@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,17 +6,25 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Assets } from '../../lib/theme';
 import JDLogo from '../../components/JDLogo';
 
 const POINTS = 250;
+
 const POINTS_TIERS = [
-  { label: 'Café Grátis', pts: 300, icon: '☕' },
-  { label: 'Sobremesa Grátis', pts: 600, icon: '🍰' },
-  { label: 'Refeição Grátis', pts: 900, icon: '🍽️' },
+  { pts: 300, icon: require('../../assets/icon-cafe-rn.png') },
+  { pts: 600, icon: require('../../assets/icon-sobremesa-rn.png') },
+  { pts: 900, icon: require('../../assets/icon-refeicao-rn.png') },
 ];
+
+const MAX_PTS = 900;
+const CIRCLE_SIZE = 39;
+const BAR_H = 14;
+const BAR_TOP = (CIRCLE_SIZE - BAR_H) / 2;
+const CONTAINER_H = CIRCLE_SIZE + 20; // circle + pts label below
 
 const VOUCHERS = [
   {
@@ -25,7 +33,7 @@ const VOUCHERS = [
     title: '2ª Pizza com 50%\nde Desconto',
     valid: 'Válido no Pizza Lab',
     pts: '100 Pontos',
-    image: 'https://www.figma.com/api/mcp/asset/5c74d365-838a-4db9-b3eb-956c553e5867',
+    image: require('../../assets/pizza-lab-food.jpg'),
   },
   {
     id: '2',
@@ -33,7 +41,7 @@ const VOUCHERS = [
     title: 'Sobremesa Grátis',
     valid: 'Válido no Portuguese Lab',
     pts: '200 Pontos',
-    image: 'https://www.figma.com/api/mcp/asset/5c74d365-838a-4db9-b3eb-956c553e5867',
+    image: require('../../assets/portuguese-lab-food.jpg'),
   },
   {
     id: '3',
@@ -41,17 +49,23 @@ const VOUCHERS = [
     title: 'Café Grátis',
     valid: 'Válido em todos os restaurantes',
     pts: '300 Pontos',
-    image: 'https://www.figma.com/api/mcp/asset/5c74d365-838a-4db9-b3eb-956c553e5867',
+    image: require('../../assets/pizza-lab-food.jpg'),
   },
 ];
 
 export default function RecompensasScreen() {
   const insets = useSafeAreaInsets();
-  const progressPct = Math.min(POINTS / POINTS_TIERS[2].pts, 1) * 100;
+  const [barWidth, setBarWidth] = useState(0);
+
+  const fillWidth = barWidth * Math.min(POINTS / MAX_PTS, 1);
+
+  const onBarLayout = (e: LayoutChangeEvent) => {
+    setBarWidth(e.nativeEvent.layout.width);
+  };
 
   return (
     <View style={styles.root}>
-      <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
@@ -64,34 +78,42 @@ export default function RecompensasScreen() {
           <Text style={styles.label}>Recompensas</Text>
         </View>
 
-        {/* Ofertas Grátis progress */}
+        {/* ── Ofertas Grátis ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ofertas Grátis!</Text>
           <Text style={styles.sectionSubtitle}>
             Faltam apenas {POINTS_TIERS[0].pts - POINTS} pontos para a sua primeira oferta grátis!
           </Text>
-          <View style={styles.progressBg}>
-            <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
-          </View>
-          <View style={styles.tiers}>
-            {POINTS_TIERS.map((tier) => (
-              <View key={tier.pts} style={styles.tierItem}>
-                <View style={[styles.tierCircle, POINTS >= tier.pts && styles.tierCircleDone]}>
-                  <Text style={styles.tierIcon}>{tier.icon}</Text>
+
+          {/* Bar + circles container */}
+          <View style={styles.progressContainer} onLayout={onBarLayout}>
+            {/* Track */}
+            <View style={styles.progressTrack} />
+            {/* Fill */}
+            <View style={[styles.progressFill, { width: fillWidth }]} />
+
+            {/* Circles on top of bar */}
+            {barWidth > 0 && POINTS_TIERS.map((tier) => {
+              const isDone = POINTS >= tier.pts;
+              const cx = barWidth * (tier.pts / MAX_PTS) - CIRCLE_SIZE / 2;
+              return (
+                <View key={tier.pts} style={[styles.tierWrapper, { left: cx }]}>
+                  <View style={[styles.tierCircle, isDone && styles.tierCircleDone]}>
+                    <Image source={tier.icon} style={styles.tierIcon} />
+                  </View>
+                  <Text style={styles.tierPts}>{tier.pts} pts</Text>
                 </View>
-                <Text style={styles.tierPts}>{tier.pts} pts</Text>
-                <Text style={styles.tierLabel}>{tier.label}</Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
-        {/* Ofertas Exclusivas */}
+        {/* ── Ofertas Exclusivas ── */}
         <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Ofertas Exclusivas</Text>
         <View style={styles.list}>
           {VOUCHERS.map((v) => (
             <View key={v.id} style={styles.voucher}>
-              <Image source={{ uri: v.image }} style={styles.voucherBg} resizeMode="cover" />
+              <Image source={v.image} style={styles.voucherBg} resizeMode="cover" />
               <View style={styles.overlay} />
               <View style={styles.voucherContent}>
                 <Text style={styles.vTag}>{v.tag}</Text>
@@ -125,7 +147,7 @@ const styles = StyleSheet.create({
   logoWrap: { alignItems: 'center', marginBottom: 4 },
   titleBlock: { alignItems: 'center', marginBottom: 16 },
   label: { fontSize: 26, color: Colors.textPrimary },
-  section: { marginBottom: 20 },
+  section: { marginBottom: 28 },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -135,40 +157,64 @@ const styles = StyleSheet.create({
   sectionSubtitle: {
     fontSize: 11,
     color: '#757575',
-    marginBottom: 10,
+    marginBottom: 14,
   },
-  progressBg: {
-    height: 14,
+  progressContainer: {
+    height: CONTAINER_H,
+    position: 'relative',
+  },
+  progressTrack: {
+    position: 'absolute',
+    top: BAR_TOP,
+    left: 0,
+    right: 0,
+    height: BAR_H,
     borderRadius: 30,
-    backgroundColor: 'rgba(191,153,78,0.35)',
-    marginBottom: 8,
-    overflow: 'hidden',
+    backgroundColor: 'rgba(191,153,78,0.5)',
   },
   progressFill: {
-    height: '100%',
-    backgroundColor: Colors.gold,
+    position: 'absolute',
+    top: BAR_TOP,
+    left: 0,
+    height: BAR_H,
     borderRadius: 30,
+    backgroundColor: Colors.gold,
   },
-  tiers: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 4,
+  tierWrapper: {
+    position: 'absolute',
+    top: 0,
+    width: CIRCLE_SIZE,
+    alignItems: 'center',
   },
-  tierItem: { alignItems: 'center', gap: 2 },
   tierCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
+    borderRadius: CIRCLE_SIZE / 2,
     borderWidth: 2,
     borderColor: Colors.gold,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  tierCircleDone: { backgroundColor: Colors.gold },
-  tierIcon: { fontSize: 16 },
-  tierPts: { fontSize: 10, color: '#757575' },
-  tierLabel: { fontSize: 9, color: '#757575', textAlign: 'center' },
+  tierCircleDone: {
+    backgroundColor: 'rgba(191,153,78,0.15)',
+  },
+  tierIcon: {
+    width: 16,
+    height: 16,
+    resizeMode: 'contain',
+  },
+  tierPts: {
+    fontSize: 10,
+    color: '#757575',
+    marginTop: 4,
+    textAlign: 'center',
+  },
   list: { gap: 16 },
   voucher: {
     height: 189,
@@ -181,11 +227,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  voucherBg: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-  },
+  voucherBg: { position: 'absolute', width: '100%', height: '100%' },
   overlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,

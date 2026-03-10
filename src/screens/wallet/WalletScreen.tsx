@@ -36,7 +36,7 @@ export default function WalletScreen() {
 
   return (
     <View style={styles.root}>
-      <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
@@ -77,9 +77,7 @@ export default function WalletScreen() {
         <View style={styles.list}>
           {filtered.map((entry) => (
             <View key={entry.id} style={styles.entry}>
-              <View style={styles.restaurantBadge}>
-                <Text style={styles.restaurantBadgeText}>L</Text>
-              </View>
+              <Image source={require('../../assets/restaurant-logo.png')} style={styles.restaurantBadge} resizeMode="contain" />
               <View style={styles.entryInfo}>
                 <Text style={styles.entryRestaurant}>{entry.restaurant}</Text>
                 <Text style={styles.entryMeal}>{entry.meal}</Text>
@@ -164,12 +162,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#222',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginRight: 12,
+    backgroundColor: '#fff',
   },
-  restaurantBadgeText: { color: '#fff', fontWeight: '700', fontSize: 18 },
   entryInfo: { flex: 1 },
   entryRestaurant: { fontSize: 18, color: Colors.textPrimary, fontWeight: '400' },
   entryMeal: { fontSize: 14, color: Colors.textPrimary },

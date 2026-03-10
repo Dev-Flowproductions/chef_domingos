@@ -57,7 +57,7 @@ export default function OnboardingScreen({ onFinish }: OnboardingProps) {
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 16 }]}>
-      <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
 
       {/* Logo */}
       <View style={[styles.logoWrap, { paddingTop: insets.top + 20 }]}>

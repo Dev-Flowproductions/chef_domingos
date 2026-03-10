@@ -31,7 +31,7 @@ export default function LoginScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
-      <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
 
       {/* Logo */}
       <View style={styles.logoWrap}>

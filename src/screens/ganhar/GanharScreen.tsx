@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Assets } from '../../lib/theme';
 import JDLogo from '../../components/JDLogo';
 
-const QR_IMAGE = 'https://www.figma.com/api/mcp/asset/d184a20c-9615-447e-98cd-b0a12b1baf01';
+const QR_IMAGE = require('../../assets/qr-code.png');
 const CODE = 'A3B2-C4D5-E6F7';
 
 export default function GanharScreen() {
@@ -17,7 +17,7 @@ export default function GanharScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
 
       {/* Logo */}
       <View style={styles.logoWrap}>
@@ -34,7 +34,7 @@ export default function GanharScreen() {
 
       {/* QR code */}
       <View style={styles.qrWrap}>
-        <Image source={{ uri: QR_IMAGE }} style={styles.qr} resizeMode="contain" />
+        <Image source={QR_IMAGE} style={styles.qr} resizeMode="contain" />
       </View>
 
       {/* Code text */}

@@ -31,7 +31,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Image source={{ uri: Assets.bgIllustration }} style={styles.bg} resizeMode="cover" />
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <View style={styles.logoWrap}>
         <View style={styles.letters}>
           <Text style={[styles.letter, { color: '#B59363' }]}>J</Text>
