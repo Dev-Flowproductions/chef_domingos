@@ -4,9 +4,12 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import { USE_MOCK } from '../lib/config';
 import { Colors } from '../lib/theme';
+import type { HomeStackParamList, ProfileStackParamList } from './types';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 const TAB_ICONS: Record<string, any> = {
   Home:        require('../assets/tab-home.png'),
@@ -17,26 +20,34 @@ const TAB_ICONS: Record<string, any> = {
 
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import EmailLoginScreen from '../screens/auth/EmailLoginScreen';
 import HomeScreen from '../screens/home/HomeScreen';
 import MenuScreen from '../screens/menu/MenuScreen';
 import WalletScreen from '../screens/wallet/WalletScreen';
 import GanharScreen from '../screens/ganhar/GanharScreen';
 import RecompensasScreen from '../screens/recompensas/RecompensasScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import NotificationsScreen from '../screens/profile/NotificationsScreen';
+import HelpScreen from '../screens/profile/HelpScreen';
+import LegalScreen from '../screens/profile/LegalScreen';
 import SplashScreen from '../screens/splash/SplashScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 
+export type { HomeStackParamList, ProfileStackParamList } from './types';
+
 export type AuthStackParamList = {
-  Login: undefined;
-  Register: undefined;
+  Login:      undefined;
+  Register:   undefined;
+  EmailLogin: undefined;
 };
 
 export type MainTabParamList = {
-  Home: undefined;
+  Home: NavigatorScreenParams<HomeStackParamList> | undefined;
   Carteira: undefined;
   Ganhar: undefined;
   Recompensas: undefined;
-  Conta: undefined;
+  Conta: NavigatorScreenParams<ProfileStackParamList> | undefined;
 };
 
 export type RootStackParamList = {
@@ -48,7 +59,17 @@ export type RootStackParamList = {
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
+const HomeStack = createNativeStackNavigator<HomeStackParamList>();
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
+
+const TAB_LABEL_KEYS: Record<string, string> = {
+  Home: 'tabs.home',
+  Carteira: 'tabs.wallet',
+  Ganhar: 'tabs.ganhar',
+  Recompensas: 'tabs.rewards',
+  Conta: 'tabs.account',
+};
 
 // Maps tab name → Ionicons name (active / inactive) — kept for reference only
 const _TAB_ICON_MAP: Record<string, { active: string; inactive: string }> = {
@@ -61,14 +82,15 @@ const _TAB_ICON_MAP: Record<string, { active: string; inactive: string }> = {
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.tabBar, { paddingBottom: insets.bottom || 8 }]}>
       {state.routes.map((route: any, index: number) => {
-        const { options } = descriptors[route.key];
-        const label = route.name;
+        const labelKey = TAB_LABEL_KEYS[route.name];
+        const label = labelKey ? t(labelKey) : route.name;
         const isFocused = state.index === index;
-        const isGanhar = label === 'Ganhar';
+        const isGanhar = route.name === 'Ganhar';
 
         const onPress = () => {
           const event = navigation.emit({
@@ -103,7 +125,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           );
         }
 
-        const iconSrc = TAB_ICONS[label];
+        const iconSrc = TAB_ICONS[route.name];
 
         return (
           <TouchableOpacity
@@ -129,17 +151,39 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   );
 }
 
+function HomeStackNavigator() {
+  return (
+    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStack.Screen name="HomeMain" component={HomeScreen} />
+      <HomeStack.Screen name="Menu" component={MenuScreen} />
+    </HomeStack.Navigator>
+  );
+}
+
+function ProfileStackNavigator() {
+  return (
+    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStack.Screen name="ProfileHome"   component={ProfileScreen} />
+      <ProfileStack.Screen name="EditProfile"   component={EditProfileScreen} />
+      <ProfileStack.Screen name="Notifications" component={NotificationsScreen} />
+      <ProfileStack.Screen name="Help"          component={HelpScreen} />
+      <ProfileStack.Screen name="Terms"         component={LegalScreen} />
+      <ProfileStack.Screen name="Privacy"       component={LegalScreen} />
+    </ProfileStack.Navigator>
+  );
+}
+
 function MainNavigator() {
   return (
     <MainTab.Navigator
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomTabBar {...props} />}
     >
-      <MainTab.Screen name="Home"        component={HomeScreen} />
+      <MainTab.Screen name="Home"        component={HomeStackNavigator} />
       <MainTab.Screen name="Carteira"    component={WalletScreen} />
       <MainTab.Screen name="Ganhar"      component={GanharScreen} />
       <MainTab.Screen name="Recompensas" component={RecompensasScreen} />
-      <MainTab.Screen name="Conta"       component={ProfileScreen} />
+      <MainTab.Screen name="Conta"       component={ProfileStackNavigator} />
     </MainTab.Navigator>
   );
 }
@@ -147,10 +191,15 @@ function MainNavigator() {
 function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-      <AuthStack.Screen name="Login"    component={LoginScreen} />
-      <AuthStack.Screen name="Register" component={RegisterScreen} />
+      <AuthStack.Screen name="Login"      component={LoginScreen} />
+      <AuthStack.Screen name="Register"   component={RegisterScreen} />
+      <AuthStack.Screen name="EmailLogin" component={EmailLoginScreen} />
     </AuthStack.Navigator>
   );
+}
+
+function MockOnboardingScreen() {
+  return <OnboardingScreen onFinish={() => {}} />;
 }
 
 function MockRootNavigator() {
@@ -159,7 +208,7 @@ function MockRootNavigator() {
       <RootStack.Screen name="Main"        component={MainNavigator} />
       <RootStack.Screen name="Login"       component={LoginScreen} />
       <RootStack.Screen name="Register"    component={RegisterScreen} />
-      <RootStack.Screen name="Onboarding"  component={() => <OnboardingScreen onFinish={() => {}} />} />
+      <RootStack.Screen name="Onboarding"  component={MockOnboardingScreen} />
     </RootStack.Navigator>
   );
 }

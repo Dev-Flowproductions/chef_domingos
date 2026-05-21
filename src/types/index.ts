@@ -10,7 +10,9 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  phone: string;
+  phone?: string;
+  preferred_language?: 'pt' | 'en';
+  notification_settings?: Record<string, boolean>;
   created_at: string;
 }
 

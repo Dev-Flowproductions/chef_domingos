@@ -43,8 +43,7 @@ export default function CartScreen() {
       clearCart();
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       Alert.alert('Order placed!', 'Your order has been received.', [
-        { text: 'View Orders', onPress: () => navigation.navigate('Orders') },
-        { text: 'OK' },
+        { text: 'OK', onPress: () => navigation.navigate('Home', { screen: 'HomeMain' }) },
       ]);
     } catch (err) {
       Alert.alert('Error', 'Failed to place order. Please try again.');
@@ -63,7 +62,7 @@ export default function CartScreen() {
           <Text style={styles.emptySubtitle}>Add some pizzas to get started</Text>
           <Button
             title="Browse Menu"
-            onPress={() => navigation.navigate('Menu')}
+            onPress={() => navigation.navigate('Home', { screen: 'Menu', params: { restaurantId: 'pizzaLab' } })}
             style={styles.browseBtn}
           />
         </View>

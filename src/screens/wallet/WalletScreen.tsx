@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,33 +6,80 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
+import { usePointsStore } from '../../store/pointsStore';
+import { useLocaleStore, localeTag } from '../../store/localeStore';
+import { getTransactions, AppTransaction, TxFilter } from '../../services/lkm/transactions';
 import JDLogo from '../../components/JDLogo';
 
-type Filter = 'Todos' | 'Ganhos' | 'Usados';
+type FilterKey = 'all' | 'earned' | 'used';
 
-const HISTORY = [
-  { id: '1', restaurant: 'Portuguese Lab', meal: 'Almoço - 15 Mai', pts: 250, gain: true },
-  { id: '2', restaurant: 'Portuguese Lab', meal: 'Almoço - 12 Mai', pts: -80, gain: false },
-  { id: '3', restaurant: 'Portuguese Lab', meal: 'Almoço - 10 Mai', pts: 100, gain: true },
-  { id: '4', restaurant: 'Portuguese Lab', meal: 'Almoço - 8 Mai', pts: 40, gain: true },
-  { id: '5', restaurant: 'Pizza Lab', meal: 'Jantar - 5 Mai', pts: -80, gain: false },
-  { id: '6', restaurant: 'Pizza Lab', meal: 'Almoço - 2 Mai', pts: 200, gain: true },
-];
+const FILTER_MAP: Record<FilterKey, TxFilter> = {
+  all: 'todos',
+  earned: 'ganhos',
+  used: 'usados',
+};
 
-const TOTAL_POINTS = 250;
+const FILTER_I18N: Record<FilterKey, string> = {
+  all: 'wallet.filterAll',
+  earned: 'wallet.filterEarned',
+  used: 'wallet.filterUsed',
+};
+
+function formatDate(iso: string, tag: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(tag, { day: '2-digit', month: 'short' });
+  } catch {
+    return iso;
+  }
+}
 
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
-  const [filter, setFilter] = useState<Filter>('Todos');
+  const { t } = useTranslation();
+  const { locale } = useLocaleStore();
+  const dateTag = localeTag(locale);
 
-  const filtered = HISTORY.filter((h) => {
-    if (filter === 'Ganhos') return h.pts > 0;
-    if (filter === 'Usados') return h.pts < 0;
-    return true;
-  });
+  const { balance, loading: ptsLoading, fetch: fetchPoints } = usePointsStore();
+
+  const [filter, setFilter] = useState<FilterKey>('all');
+  const [transactions, setTransactions] = useState<AppTransaction[]>([]);
+  const [txLoading, setTxLoading]     = useState(false);
+  const [refreshing, setRefreshing]   = useState(false);
+
+  const loadTransactions = useCallback(async (f: FilterKey) => {
+    setTxLoading(true);
+    try {
+      const res = await getTransactions(FILTER_MAP[f]);
+      setTransactions(res.transactions);
+    } catch (err) {
+      console.warn('[WalletScreen] failed to load transactions', err);
+    } finally {
+      setTxLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPoints();
+    loadTransactions(filter);
+  }, []);
+
+  const onFilterChange = (f: FilterKey) => {
+    setFilter(f);
+    loadTransactions(f);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchPoints(), loadTransactions(filter)]);
+    setRefreshing(false);
+  };
 
   return (
     <View style={styles.root}>
@@ -40,33 +87,38 @@ export default function WalletScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />}
       >
-        {/* Logo */}
         <View style={styles.logoWrap}>
           <JDLogo size="small" />
         </View>
 
         {/* Points */}
         <View style={styles.pointsBlock}>
-          <Text style={styles.label}>A minha Carteira</Text>
-          <Text style={styles.pts}>{TOTAL_POINTS}</Text>
-          <Text style={styles.ptsLabel}>PONTOS</Text>
+          <Text style={styles.label}>{t('wallet.title')}</Text>
+          {ptsLoading ? (
+            <ActivityIndicator color={Colors.gold} style={{ marginVertical: 8 }} />
+          ) : (
+            <>
+              <Text style={styles.pts}>{balance}</Text>
+              <Text style={styles.ptsLabel}>PONTOS</Text>
+            </>
+          )}
         </View>
 
-        {/* History title */}
-        <Text style={styles.histTitle}>Histórico de Pontos</Text>
+        <Text style={styles.histTitle}>{t('wallet.history')}</Text>
 
         {/* Filter pill */}
         <View style={styles.filterWrap}>
           <View style={styles.filterBar}>
-            {(['Todos', 'Ganhos', 'Usados'] as Filter[]).map((f) => (
+            {(['all', 'earned', 'used'] as FilterKey[]).map((f) => (
               <TouchableOpacity
                 key={f}
                 style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
-                onPress={() => setFilter(f)}
+                onPress={() => onFilterChange(f)}
               >
                 <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
-                  {f}
+                  {t(FILTER_I18N[f])}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -74,30 +126,38 @@ export default function WalletScreen() {
         </View>
 
         {/* History list */}
-        <View style={styles.list}>
-          {filtered.map((entry) => (
-            <View key={entry.id} style={styles.entry}>
-              <Image source={require('../../assets/restaurant-logo.png')} style={styles.restaurantBadge} resizeMode="contain" />
-              <View style={styles.entryInfo}>
-                <Text style={styles.entryRestaurant}>{entry.restaurant}</Text>
-                <Text style={styles.entryMeal}>{entry.meal}</Text>
-              </View>
-              <View style={styles.entryPts}>
-                <Text
-                  style={[
-                    styles.entryPtsNum,
-                    { color: entry.pts > 0 ? Colors.gold : '#848484' },
-                  ]}
-                >
-                  {entry.pts > 0 ? `+${entry.pts}` : entry.pts}
-                </Text>
-                <Text style={[styles.entryPtsLabel, { color: entry.pts > 0 ? Colors.gold : '#848484' }]}>
-                  PONTOS
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
+        {txLoading ? (
+          <ActivityIndicator color={Colors.gold} style={{ marginTop: 32 }} />
+        ) : (
+          <View style={styles.list}>
+            {transactions.length === 0 ? (
+              <Text style={styles.empty}>{t('wallet.empty')}</Text>
+            ) : (
+              transactions.map((entry) => (
+                <View key={entry.id} style={styles.entry}>
+                  <Image
+                    source={require('../../assets/restaurant-logo.png')}
+                    style={styles.restaurantBadge}
+                    resizeMode="contain"
+                  />
+                  <View style={styles.entryInfo}>
+                    <Text style={styles.entryRestaurant}>{entry.restaurant}</Text>
+                    <Text style={styles.entryMeal}>{entry.description} · {formatDate(entry.date, dateTag)}</Text>
+                  </View>
+                  <View style={styles.entryPts}>
+                    <Text style={[styles.entryPtsNum, { color: entry.points > 0 ? Colors.gold : '#848484' }]}>
+                      {entry.points > 0 ? `+${entry.points}` : entry.points}
+                    </Text>
+                    <Text style={[styles.entryPtsLabel, { color: entry.points > 0 ? Colors.gold : '#848484' }]}>
+                      {t('common.points')}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        )}
+
         <View style={{ height: 24 }} />
       </ScrollView>
     </View>
@@ -106,46 +166,22 @@ export default function WalletScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  bg: {
-    position: 'absolute',
-    width: 874,
-    height: 874,
-    left: -274,
-    top: 0,
-    opacity: 0.4,
-  },
+  bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   logoWrap: { alignItems: 'center', marginBottom: 4 },
   pointsBlock: { alignItems: 'center', marginBottom: 20 },
   label: { fontSize: 26, color: Colors.textPrimary },
   pts: { fontSize: 44, fontWeight: '800', color: Colors.gold, lineHeight: 56 },
   ptsLabel: { fontSize: 18, color: Colors.gold, letterSpacing: 1 },
-  histTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 12,
-  },
+  histTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 12 },
   filterWrap: { marginBottom: 16 },
-  filterBar: {
-    flexDirection: 'row',
-    borderWidth: 2,
-    borderColor: Colors.gold,
-    borderRadius: 30,
-    overflow: 'hidden',
-  },
-  filterBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 30,
-  },
-  filterBtnActive: {
-    backgroundColor: Colors.gold,
-  },
+  filterBar: { flexDirection: 'row', borderWidth: 2, borderColor: Colors.gold, borderRadius: 30, overflow: 'hidden' },
+  filterBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 30 },
+  filterBtnActive: { backgroundColor: Colors.gold },
   filterText: { fontSize: 18, color: Colors.textPrimary },
   filterTextActive: { color: '#fff' },
   list: { gap: 12 },
+  empty: { textAlign: 'center', color: Colors.textPrimary, marginTop: 32, fontSize: 15 },
   entry: {
     backgroundColor: '#fff',
     borderRadius: 15,
@@ -158,13 +194,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  restaurantBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-    backgroundColor: '#fff',
-  },
+  restaurantBadge: { width: 48, height: 48, borderRadius: 24, marginRight: 12, backgroundColor: '#fff' },
   entryInfo: { flex: 1 },
   entryRestaurant: { fontSize: 18, color: Colors.textPrimary, fontWeight: '400' },
   entryMeal: { fontSize: 14, color: Colors.textPrimary },

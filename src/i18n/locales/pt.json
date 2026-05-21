@@ -1,0 +1,245 @@
+{
+  "common": {
+    "back": "← Voltar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "loading": "A carregar…",
+    "points": "PONTOS",
+    "pointsLower": "Pontos",
+    "success": "Sucesso!",
+    "error": "Erro"
+  },
+  "tabs": {
+    "home": "Início",
+    "wallet": "Carteira",
+    "ganhar": "Ganhar",
+    "rewards": "Recompensas",
+    "account": "Conta"
+  },
+  "auth": {
+    "welcome": "Bem-Vindo",
+    "welcomeBody": "Entre ou registe-se para ter acesso às suas recompensas",
+    "loginPhone": "Entrar com telemóvel",
+    "loginEmail": "Entrar com email",
+    "noAccount": "Ainda não tem conta? Registe-se.",
+    "hasAccount": "Já tem conta? Entre aqui.",
+    "emailLoginTitle": "Entrar com email",
+    "email": "Email",
+    "password": "Palavra-passe",
+    "login": "Entrar",
+    "registerTitle": "Criar conta",
+    "name": "Nome",
+    "namePlaceholder": "O seu nome",
+    "emailPlaceholder": "o.seu@email.com",
+    "passwordPlaceholder": "••••••••",
+    "passwordMinPlaceholder": "Mínimo 6 caracteres",
+    "createAccount": "Criar conta",
+    "termsRequired": "Termos e Condições",
+    "termsMustAccept": "Tem de aceitar os Termos e Condições para continuar.",
+    "termsAccept": "Li e aceito os",
+    "termsLink": "Termos e Condições",
+    "privacyLink": "Política de Privacidade",
+    "termsAnd": "e a",
+    "newsOptIn": "Aceito receber novidades, promoções e ofertas personalizadas.",
+    "fieldsRequired": "Campos obrigatórios",
+    "fillEmailPassword": "Por favor preencha o email e a palavra-passe.",
+    "fillAllFields": "Por favor preencha todos os campos.",
+    "invalidPassword": "Palavra-passe inválida",
+    "passwordMin6": "A palavra-passe deve ter pelo menos 6 caracteres.",
+    "loginError": "Erro ao entrar",
+    "invalidCredentials": "Credenciais inválidas. Tente novamente.",
+    "registerError": "Erro ao registar",
+    "genericError": "Ocorreu um erro. Tente novamente.",
+    "verifyEmailTitle": "Verifique o seu email",
+    "verifyEmailBody": "Enviámos um email de confirmação para",
+    "verifyEmailHint": "Clique no link no email para ativar a sua conta e depois entre aqui.",
+    "goToLogin": "Ir para o login"
+  },
+  "onboarding": {
+    "slide1Title": "Uma conta, todos\nos sabores.",
+    "slide1Body": "Acumule pontos nos nossos restaurantes e saboreie a sua refeição.",
+    "slide2Title": "Ganhar é simples.",
+    "slide2Body": "Depois de saborear a sua refeição, faça scan do QR Code no talão e veja o seu saldo crescer.",
+    "slide3Title": "Recompensas\ne Ofertas",
+    "slide3Body": "Troque pontos por refeições, sobremesas ou ofertas exclusivas para utilizar na sua próxima visita.",
+    "next": "Próximo",
+    "start": "Começar",
+    "skip": "Saltar"
+  },
+  "home": {
+    "greeting": "Olá, {{name}}!",
+    "exclusiveOffers": "Ofertas Exclusivas",
+    "ourRestaurants": "Os Nossos Restaurantes",
+    "pointsCost": "{{count}} Pontos"
+  },
+  "offers": {
+    "f1": {
+      "title": "2ª Pizza com 50% de Desconto",
+      "description": "Válido no Pizza Lab",
+      "tag": "Oferta de Amanhã"
+    },
+    "f2": {
+      "title": "Sobremesa Grátis",
+      "description": "Válido no Portuguese Lab",
+      "tag": "Oferta Especial"
+    },
+    "f3": {
+      "title": "Café Grátis",
+      "description": "Válido em todos os restaurantes",
+      "tag": "Esta Semana"
+    }
+  },
+  "menu": {
+    "title": "Menu",
+    "restaurants": {
+      "portugueseLab": "Portuguese Lab",
+      "pizzaLab": "Pizza Lab"
+    },
+    "portugueseLab": {
+      "categories": {
+        "menus": "Menus",
+        "principais": "Principais",
+        "vegetariano": "Vegetariano",
+        "sobremesa": "Sobremesa"
+      },
+      "items": {
+        "menuDoDia": { "name": "Menu do Dia", "price": "9,90€" },
+        "menuExecutive": { "name": "Menu Executive", "price": "14,90€" },
+        "menuFamilia": { "name": "Menu Família", "price": "32,00€" },
+        "medalhoesNovilho": { "name": "Medalhões de novilho", "price": "12,90€" },
+        "escalopesFrango": { "name": "Escalopes de frango", "price": "11,90€" },
+        "bifinhoFrango": { "name": "Bifinho de frango grelhados", "price": "12,50€" },
+        "bacalhauBras": { "name": "Bacalhau à Brás", "price": "14,50€" },
+        "salmaoGrelhado": { "name": "Salmão grelhado", "price": "13,90€" },
+        "risottoCogumelos": { "name": "Risotto de cogumelos", "price": "11,50€" },
+        "lasanhaLegumes": { "name": "Lasanha de legumes", "price": "10,90€" },
+        "saladaCaesar": { "name": "Salada Caesar", "price": "9,50€" },
+        "pastelNata": { "name": "Pastel de nata", "price": "1,50€" },
+        "mousseChocolate": { "name": "Mousse de chocolate", "price": "4,90€" },
+        "pudimFlan": { "name": "Pudim flan", "price": "4,50€" },
+        "tarteMaca": { "name": "Tarte de maçã", "price": "5,00€" }
+      }
+    },
+    "pizzaLab": {
+      "categories": {
+        "pizzas": "Pizzas",
+        "entradas": "Entradas",
+        "bebidas": "Bebidas",
+        "sobremesa": "Sobremesas"
+      },
+      "items": {
+        "margherita": { "name": "Margherita", "price": "9,50€" },
+        "pepperoni": { "name": "Pepperoni", "price": "11,50€" },
+        "quattroFormaggi": { "name": "Quattro Formaggi", "price": "12,90€" },
+        "diavola": { "name": "Diavola", "price": "11,90€" },
+        "vegetariana": { "name": "Vegetariana", "price": "10,90€" },
+        "prosciuttoRucola": { "name": "Prosciutto e Rúcula", "price": "13,50€" },
+        "paoAlho": { "name": "Pão de alho", "price": "4,50€" },
+        "bruschetta": { "name": "Bruschetta", "price": "5,90€" },
+        "saladaMista": { "name": "Salada mista", "price": "6,50€" },
+        "agua": { "name": "Água 50cl", "price": "1,80€" },
+        "refrigerante": { "name": "Refrigerante", "price": "2,50€" },
+        "sumoLaranja": { "name": "Sumo de laranja", "price": "3,50€" },
+        "cerveja": { "name": "Cerveja 33cl", "price": "3,00€" },
+        "tiramisu": { "name": "Tiramisú", "price": "5,50€" },
+        "gelado": { "name": "Gelado (2 bolas)", "price": "4,00€" },
+        "brownieChocolate": { "name": "Brownie de chocolate", "price": "5,90€" }
+      }
+    }
+  },
+  "wallet": {
+    "title": "A minha Carteira",
+    "history": "Histórico de Pontos",
+    "filterAll": "Todos",
+    "filterEarned": "Ganhos",
+    "filterUsed": "Usados",
+    "empty": "Sem transações para mostrar."
+  },
+  "ganhar": {
+    "title": "Ganhar Pontos",
+    "body": "Apresente este código no restaurante para acumular pontos na sua compra."
+  },
+  "rewards": {
+    "title": "Recompensas",
+    "freeOffers": "Ofertas Grátis!",
+    "ptsToMilestone": "Faltam apenas {{count}} pontos para {{milestone}}!",
+    "allMilestones": "Parabéns! Já atingiu todas as metas!",
+    "exclusiveOffers": "Ofertas Exclusivas",
+    "tierCoffee": "Café Grátis",
+    "tierDessert": "Sobremesa Grátis",
+    "tierMeal": "Refeição Grátis",
+    "insufficientPoints": "Pontos insuficientes",
+    "needPoints": "Precisa de {{cost}} pontos para resgatar \"{{title}}\". Tem apenas {{balance}}.",
+    "claimTitle": "Resgatar oferta",
+    "claimConfirm": "Resgatar \"{{title}}\" por {{cost}} pontos?",
+    "claim": "Resgatar",
+    "claimSuccess": "\"{{title}}\" adicionado aos seus vouchers.",
+    "pointsCost": "{{count}} Pontos",
+    "ptsShort": "{{count}} pts"
+  },
+  "profile": {
+    "title": "A minha conta",
+    "editProfile": "Editar Perfil",
+    "notifications": "Notificações",
+    "help": "Ajuda e Suporte",
+    "terms": "Termos e Condições",
+    "privacy": "Política de Privacidade",
+    "signOut": "Terminar sessão",
+    "editTitle": "Editar Perfil",
+    "phone": "Telemóvel (opcional)",
+    "phonePlaceholder": "+351 900 000 000",
+    "emailReadOnly": "O email não pode ser alterado.",
+    "language": "Idioma",
+    "langPt": "Português",
+    "langEn": "English",
+    "saved": "Perfil atualizado com sucesso.",
+    "saveError": "Não foi possível guardar o perfil."
+  },
+  "notifications": {
+    "title": "Notificações",
+    "subtitle": "Escolha que alertas pretende receber (quando as notificações push estiverem disponíveis).",
+    "promotions": "Promoções e ofertas",
+    "promotionsDesc": "Novidades e campanhas exclusivas",
+    "pointsEarned": "Pontos ganhos",
+    "pointsEarnedDesc": "Quando acumula pontos numa visita",
+    "voucherReminders": "Lembretes de vouchers",
+    "voucherRemindersDesc": "Antes dos seus vouchers expirarem"
+  },
+  "faq": {
+    "title": "Ajuda e Suporte",
+    "q1": "Como acumulo pontos?",
+    "a1": "Após a refeição, apresente o seu código QR na secção Ganhar ou no talão no restaurante. Os pontos são creditados na sua carteira.",
+    "q2": "O que é a secção Ganhar?",
+    "a2": "Em Ganhar encontra o seu código de cliente. Mostre-o no restaurante para associar a compra à sua conta de fidelização.",
+    "q3": "Como resgato uma oferta?",
+    "a3": "Em Recompensas, escolha uma oferta com pontos suficientes e toque em Resgatar. O voucher ficará disponível na sua carteira.",
+    "q4": "Os pontos expiram?",
+    "a4": "As regras de validade dependem do programa. Consulte as condições no restaurante ou contacte o suporte.",
+    "q5": "Posso usar pontos em todos os restaurantes?",
+    "a5": "O saldo é partilhado entre os restaurantes do grupo JD. Algumas ofertas podem ser válidas apenas num local.",
+    "q6": "Como altero os meus dados?",
+    "a6": "Em Conta → Editar Perfil pode atualizar o nome, telemóvel e idioma da aplicação.",
+    "q7": "Esqueci-me da palavra-passe",
+    "a7": "Na página de login, utilize a opção de recuperação de palavra-passe por email (quando disponível) ou contacte o suporte.",
+    "q8": "Como protegem os meus dados?",
+    "a8": "Consulte a Política de Privacidade em Conta. Os dados são tratados em conformidade com a legislação aplicável."
+  },
+  "legal": {
+    "termsTitle": "Termos e Condições",
+    "privacyTitle": "Política de Privacidade",
+    "lastUpdated": "Última atualização: maio de 2026",
+    "placeholderIntro": "Este texto é um placeholder até recebermos a versão final do cliente.",
+    "termsS1Title": "1. Aceitação",
+    "termsS1": "Ao utilizar a aplicação JD Chef Domingos, aceita estes termos. Se não concordar, não utilize a aplicação.",
+    "termsS2Title": "2. Programa de fidelização",
+    "termsS2": "Os pontos e recompensas são geridos pelo parceiro de fidelização. O saldo e as ofertas podem ser alterados conforme as regras do programa.",
+    "termsS3Title": "3. Conta",
+    "termsS3": "É responsável pela confidencialidade das credenciais da sua conta e por toda a atividade realizada com a mesma.",
+    "privacyS1Title": "1. Responsável",
+    "privacyS1": "O responsável pelo tratamento dos dados pessoais é o Grupo PIE / rede de restaurantes JD, contactável em grupopie@grupopie.com.",
+    "privacyS2Title": "2. Dados recolhidos",
+    "privacyS2": "Recolhemos dados de conta (nome, email, telefone opcional), histórico de pontos e preferências da aplicação.",
+    "privacyS3Title": "3. Finalidade",
+    "privacyS3": "Os dados são utilizados para gerir o programa de fidelização, comunicações autorizadas e melhoria do serviço."
+  }
+}

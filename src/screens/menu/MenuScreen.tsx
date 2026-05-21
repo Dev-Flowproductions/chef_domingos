@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,45 +8,31 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
+import { getRestaurantMenu, type RestaurantId } from '../../lib/menuI18n';
+import type { HomeStackParamList } from '../../navigation/types';
 import JDLogo from '../../components/JDLogo';
 
-const CATEGORIES = ['Menus', 'Principais', 'Vegetariano', 'Sobremesa'];
-
-const MENU_ITEMS: Record<string, { name: string; price: string }[]> = {
-  Menus: [
-    { name: 'Menu do Dia', price: '9,90€' },
-    { name: 'Menu Executive', price: '14,90€' },
-    { name: 'Menu Família', price: '32,00€' },
-  ],
-  Principais: [
-    { name: 'Medalhões de novilho', price: '12,90€' },
-    { name: 'Escalopes de frango', price: '11,90€' },
-    { name: 'Bifinho de frango grelhados', price: '12,50€' },
-    { name: 'Bacalhau à Brás', price: '14,50€' },
-    { name: 'Salmão grelhado', price: '13,90€' },
-  ],
-  Vegetariano: [
-    { name: 'Risotto de cogumelos', price: '11,50€' },
-    { name: 'Lasanha de legumes', price: '10,90€' },
-    { name: 'Salada Caesar', price: '9,50€' },
-  ],
-  Sobremesa: [
-    { name: 'Pastel de nata', price: '1,50€' },
-    { name: 'Mousse de chocolate', price: '4,90€' },
-    { name: 'Pudim flan', price: '4,50€' },
-    { name: 'Tarte de maçã', price: '5,00€' },
-  ],
-};
-
-const RESTAURANTS = ['Portuguese Lab', 'Pizza Lab'];
+type MenuRoute = RouteProp<HomeStackParamList, 'Menu'>;
 
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();
-  const [activeCategory, setActiveCategory] = useState('Principais');
-  const [activeRestaurant, setActiveRestaurant] = useState('Portuguese Lab');
+  const navigation = useNavigation();
+  const route = useRoute<MenuRoute>();
+  const { t } = useTranslation();
 
-  const items = MENU_ITEMS[activeCategory] ?? [];
+  const restaurantId: RestaurantId = route.params?.restaurantId ?? 'portugueseLab';
+  const menuConfig = getRestaurantMenu(restaurantId);
+
+  const [activeCategory, setActiveCategory] = useState(menuConfig.defaultCategory);
+
+  useEffect(() => {
+    setActiveCategory(menuConfig.defaultCategory);
+  }, [restaurantId, menuConfig.defaultCategory]);
+
+  const itemIds = menuConfig.items[activeCategory] ?? [];
 
   return (
     <View style={styles.root}>
@@ -55,51 +41,56 @@ export default function MenuScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
       >
-        {/* Logo */}
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={styles.backText}>←</Text>
+        </TouchableOpacity>
+
         <View style={styles.logoWrap}>
           <JDLogo size="small" />
         </View>
 
-        {/* Title */}
         <View style={styles.titleBlock}>
-          <Text style={styles.subtitle}>Menu</Text>
-          <Text style={styles.title}>{activeRestaurant}</Text>
+          <Text style={styles.subtitle}>{t('menu.title')}</Text>
+          <Text style={styles.title}>{t(`menu.restaurants.${restaurantId}`)}</Text>
         </View>
 
-        {/* Category tabs */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.catList}
           style={styles.catScroll}
         >
-          {CATEGORIES.map((cat) => (
+          {menuConfig.categories.map((catId) => (
             <TouchableOpacity
-              key={cat}
-              onPress={() => setActiveCategory(cat)}
+              key={catId}
+              onPress={() => setActiveCategory(catId)}
               style={styles.catBtn}
             >
-              <Text style={[styles.catText, activeCategory === cat && styles.catTextActive]}>
-                {cat}
+              <Text style={[styles.catText, activeCategory === catId && styles.catTextActive]}>
+                {t(`menu.${restaurantId}.categories.${catId}`)}
               </Text>
-              {activeCategory === cat && <View style={styles.catUnderline} />}
+              {activeCategory === catId && <View style={styles.catUnderline} />}
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Section heading */}
-        <Text style={styles.sectionHeading}>{activeCategory}</Text>
+        <Text style={styles.sectionHeading}>
+          {t(`menu.${restaurantId}.categories.${activeCategory}`)}
+        </Text>
 
-        {/* Menu items */}
         <View style={styles.menuList}>
-          {items.map((item, idx) => (
-            <View key={idx}>
+          {itemIds.map((itemId, idx) => (
+            <View key={itemId}>
               <View style={styles.menuRow}>
-                <Text style={styles.menuName}>{item.name}</Text>
+                <Text style={styles.menuName}>
+                  {t(`menu.${restaurantId}.items.${itemId}.name`)}
+                </Text>
                 <View style={styles.menuDots} />
-                <Text style={styles.menuPrice}>{item.price}</Text>
+                <Text style={styles.menuPrice}>
+                  {t(`menu.${restaurantId}.items.${itemId}.price`)}
+                </Text>
               </View>
-              {idx < items.length - 1 && <View style={styles.divider} />}
+              {idx < itemIds.length - 1 && <View style={styles.divider} />}
             </View>
           ))}
         </View>
@@ -124,6 +115,8 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
   },
+  backBtn: { alignSelf: 'flex-start', marginBottom: 4 },
+  backText: { fontSize: 24, color: Colors.gold },
   logoWrap: {
     alignItems: 'center',
     marginBottom: 8,

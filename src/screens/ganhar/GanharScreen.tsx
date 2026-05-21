@@ -1,44 +1,65 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
+import { getLkmProfile } from '../../services/lkm/auth';
 import JDLogo from '../../components/JDLogo';
 
 const QR_IMAGE = require('../../assets/qr-code.png');
-const CODE = 'A3B2-C4D5-E6F7';
 
 export default function GanharScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+
+  const [cardCode,  setCardCode]  = useState<string | null>(null);
+  const [shortCode, setShortCode] = useState<string | null>(null);
+  const [loading,   setLoading]   = useState(true);
+
+  useEffect(() => {
+    getLkmProfile()
+      .then((profile) => {
+        if (profile.linked) {
+          setCardCode(profile.cardCode ?? null);
+          setShortCode(profile.shortCode ?? null);
+        }
+      })
+      .catch((err) => console.warn('[GanharScreen] profile error', err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Display value: prefer shortCode for human readability, fall back to cardCode
+  const displayCode = shortCode ?? cardCode ?? 'A3B2-C4D5-E6F7';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
 
-      {/* Logo */}
       <View style={styles.logoWrap}>
         <JDLogo size="small" />
       </View>
 
-      {/* Title */}
       <View style={styles.titleBlock}>
-        <Text style={styles.title}>Ganhar Pontos</Text>
-        <Text style={styles.body}>
-          Apresente este código no restaurante para acumular pontos na sua compra.
-        </Text>
+        <Text style={styles.title}>{t('ganhar.title')}</Text>
+        <Text style={styles.body}>{t('ganhar.body')}</Text>
       </View>
 
-      {/* QR code */}
-      <View style={styles.qrWrap}>
-        <Image source={QR_IMAGE} style={styles.qr} resizeMode="contain" />
-      </View>
-
-      {/* Code text */}
-      <Text style={styles.code}>{CODE}</Text>
+      {loading ? (
+        <ActivityIndicator color={Colors.gold} size="large" style={{ marginVertical: 40 }} />
+      ) : (
+        <>
+          <View style={styles.qrWrap}>
+            <Image source={QR_IMAGE} style={styles.qr} resizeMode="contain" />
+          </View>
+          <Text style={styles.code}>{displayCode}</Text>
+        </>
+      )}
     </View>
   );
 }
@@ -50,29 +71,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: 'center',
   },
-  bg: {
-    position: 'absolute',
-    width: 874,
-    height: 874,
-    left: -274,
-    top: 0,
-    opacity: 0.4,
-  },
+  bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   logoWrap: { alignItems: 'center', marginBottom: 16 },
   titleBlock: { alignItems: 'center', marginBottom: 32 },
-  title: {
-    fontSize: 34,
-    fontWeight: '400',
-    color: Colors.gold,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  body: {
-    fontSize: 18,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    lineHeight: 28,
-  },
+  title: { fontSize: 34, fontWeight: '400', color: Colors.gold, textAlign: 'center', marginBottom: 16 },
+  body: { fontSize: 18, color: Colors.textPrimary, textAlign: 'center', lineHeight: 28 },
   qrWrap: {
     width: 203,
     height: 203,
@@ -82,16 +85,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#fff',
   },
-  qr: {
-    width: '100%',
-    height: '100%',
-  },
-  code: {
-    fontSize: 34,
-    fontWeight: '400',
-    color: Colors.gold,
-    textAlign: 'center',
-    marginTop: 24,
-    letterSpacing: 2,
-  },
+  qr: { width: '100%', height: '100%' },
+  code: { fontSize: 34, fontWeight: '400', color: Colors.gold, textAlign: 'center', marginTop: 24, letterSpacing: 2 },
 });
