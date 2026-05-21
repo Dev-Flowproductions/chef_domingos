@@ -11,27 +11,12 @@ import {
   NativeSyntheticEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 
-const SLIDES = [
-  {
-    id: '1',
-    title: 'Uma conta, todos\nos sabores.',
-    body: 'Acumule pontos nos nossos restaurantes e saboreie a sua refeição.',
-  },
-  {
-    id: '2',
-    title: 'Ganhar é simples.',
-    body: 'Depois de saborear a sua refeição, faça scan do QR Code no talão e veja o seu saldo crescer.',
-  },
-  {
-    id: '3',
-    title: 'Recompensas\ne Ofertas',
-    body: 'Troque pontos por refeições, sobremesas ou ofertas exclusivas para utilizar na sua próxima visita.',
-  },
-];
+const SLIDE_IDS = ['1', '2', '3'] as const;
 
 interface OnboardingProps {
   onFinish: () => void;
@@ -39,8 +24,15 @@ interface OnboardingProps {
 
 export default function OnboardingScreen({ onFinish }: OnboardingProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatRef = useRef<FlatList>(null);
+
+  const slides = SLIDE_IDS.map((id) => ({
+    id,
+    title: t(`onboarding.slide${id}Title`),
+    body: t(`onboarding.slide${id}Body`),
+  }));
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / width);
@@ -48,7 +40,7 @@ export default function OnboardingScreen({ onFinish }: OnboardingProps) {
   };
 
   const handleNext = () => {
-    if (currentIndex < SLIDES.length - 1) {
+    if (currentIndex < slides.length - 1) {
       flatRef.current?.scrollToIndex({ index: currentIndex + 1 });
     } else {
       onFinish();
@@ -70,7 +62,7 @@ export default function OnboardingScreen({ onFinish }: OnboardingProps) {
       {/* Slides */}
       <FlatList
         ref={flatRef}
-        data={SLIDES}
+        data={slides}
         keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
@@ -87,7 +79,7 @@ export default function OnboardingScreen({ onFinish }: OnboardingProps) {
 
       {/* Dots */}
       <View style={styles.dots}>
-        {SLIDES.map((_, i) => (
+        {slides.map((_, i) => (
           <View
             key={i}
             style={[styles.dot, i === currentIndex && styles.dotActive]}
@@ -99,11 +91,11 @@ export default function OnboardingScreen({ onFinish }: OnboardingProps) {
       <View style={styles.btns}>
         <TouchableOpacity style={styles.nextBtn} onPress={handleNext} activeOpacity={0.85}>
           <Text style={styles.nextText}>
-            {currentIndex < SLIDES.length - 1 ? 'Próximo' : 'Começar'}
+            {currentIndex < slides.length - 1 ? t('onboarding.next') : t('onboarding.start')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onFinish}>
-          <Text style={styles.skipText}>Saltar</Text>
+          <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -3,6 +3,10 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { USE_MOCK } from '../lib/config';
 import { MOCK_USER } from '../lib/mockData';
+import { registerEmailWithLkm } from '../services/lkm/auth';
+import { ensureUserRow } from '../lib/ensureUserProfile';
+import { withTimeout } from '../lib/withTimeout';
+import { useUserStore } from './userStore';
 
 interface AuthState {
   session: Session | null;
@@ -50,12 +54,25 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ session: MOCK_SESSION, user: MOCK_SESSION.user as unknown as User });
       return { error: null };
     }
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: _email,
       password: _password,
       options: { data: { name: _name } },
     });
-    return { error };
+    if (error) return { error };
+
+    // After Supabase signup succeeds, also register in LKM loyalty system.
+    // Non-fatal: if LKM registration fails the user can link their card later.
+    if (data.session?.user) {
+      await ensureUserRow(data.session.user);
+      try {
+        await registerEmailWithLkm({ name: _name, email: _email, password: _password });
+      } catch (lkmErr) {
+        console.warn('[authStore] LKM registration failed, will retry on next login:', lkmErr);
+      }
+    }
+
+    return { error: null };
   },
 
   signOut: async () => {
@@ -68,10 +85,33 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ session: MOCK_SESSION, user: MOCK_SESSION.user as unknown as User, loading: false });
       return;
     }
-    const { data } = await supabase.auth.getSession();
-    set({ session: data.session, user: data.session?.user ?? null, loading: false });
-    supabase.auth.onAuthStateChange((_event: any, session: any) => {
+
+    try {
+      const { data } = await withTimeout(
+        supabase.auth.getSession(),
+        8000,
+        'auth.getSession',
+      ) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+      set({ session: data.session, user: data.session?.user ?? null, loading: false });
+      if (data.session?.user) {
+        void ensureUserRow(data.session.user).catch((err) => {
+          console.warn('[authStore] ensureUserRow failed:', err);
+        });
+      }
+    } catch (err) {
+      console.warn('[authStore] initialize failed, continuing without session:', err);
+      set({ session: null, user: null, loading: false });
+    }
+
+    supabase.auth.onAuthStateChange((_event: unknown, session: Session | null) => {
       set({ session, user: session?.user ?? null });
+      if (session?.user) {
+        void ensureUserRow(session.user).catch((err) => {
+          console.warn('[authStore] ensureUserRow failed:', err);
+        });
+      } else {
+        useUserStore.getState().clearProfile();
+      }
     });
   },
 }));

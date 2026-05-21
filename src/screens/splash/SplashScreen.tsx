@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, Image, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Assets } from '../../lib/theme';
@@ -9,20 +9,26 @@ interface SplashScreenProps {
 
 export default function SplashScreen({ onFinish }: SplashScreenProps) {
   const insets = useSafeAreaInsets();
-  const spin = new Animated.Value(0);
+  const spin = useRef(new Animated.Value(0)).current;
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
 
   useEffect(() => {
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.timing(spin, {
         toValue: 1,
         duration: 1200,
         useNativeDriver: true,
-      })
-    ).start();
+      }),
+    );
+    loop.start();
 
-    const timer = setTimeout(onFinish, 2500);
-    return () => clearTimeout(timer);
-  }, []);
+    const timer = setTimeout(() => onFinishRef.current(), 2500);
+    return () => {
+      clearTimeout(timer);
+      loop.stop();
+    };
+  }, [spin]);
 
   const rotate = spin.interpolate({
     inputRange: [0, 1],

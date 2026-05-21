@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
 import { USE_MOCK } from '../../lib/config';
@@ -19,6 +20,7 @@ type AuthNav = NativeStackNavigationProp<any>;
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<AuthNav>();
+  const { t } = useTranslation();
   const { signIn } = useAuthStore();
 
   const handleEmailLogin = async () => {
@@ -43,28 +45,24 @@ export default function LoginScreen() {
 
       {/* Title + subtitle */}
       <View style={styles.info}>
-        <Text style={styles.title}>Bem-Vindo</Text>
-        <Text style={styles.body}>
-          Entre ou registe-se para ter acesso às suas recompensas
-        </Text>
+        <Text style={styles.title}>{t('auth.welcome')}</Text>
+        <Text style={styles.body}>{t('auth.welcomeBody')}</Text>
       </View>
 
       {/* Buttons */}
       <View style={styles.btns}>
-        <TouchableOpacity style={styles.btn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.btn} onPress={handleEmailLogin} activeOpacity={0.85}>
           <Ionicons name="phone-portrait-outline" size={20} color="#fff" />
-          <Text style={styles.btnText}>Entrar com telemóvel</Text>
+          <Text style={styles.btnText}>{t('auth.loginPhone')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btn} onPress={handleEmailLogin} activeOpacity={0.85}>
           <Ionicons name="mail-outline" size={20} color="#fff" />
-          <Text style={styles.btnText}>Entrar com email</Text>
+          <Text style={styles.btnText}>{t('auth.loginEmail')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.registerText}>
-            Ainda não tem conta? Registe-se.
-          </Text>
+          <Text style={styles.registerText}>{t('auth.noAccount')}</Text>
         </TouchableOpacity>
       </View>
     </View>

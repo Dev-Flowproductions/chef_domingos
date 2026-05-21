@@ -1,0 +1,245 @@
+{
+  "common": {
+    "back": "← Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "points": "POINTS",
+    "pointsLower": "Points",
+    "success": "Success!",
+    "error": "Error"
+  },
+  "tabs": {
+    "home": "Home",
+    "wallet": "Wallet",
+    "ganhar": "Earn",
+    "rewards": "Rewards",
+    "account": "Account"
+  },
+  "auth": {
+    "welcome": "Welcome",
+    "welcomeBody": "Sign in or register to access your rewards",
+    "loginPhone": "Sign in with phone",
+    "loginEmail": "Sign in with email",
+    "noAccount": "Don't have an account? Sign up.",
+    "hasAccount": "Already have an account? Sign in.",
+    "emailLoginTitle": "Sign in with email",
+    "email": "Email",
+    "password": "Password",
+    "login": "Sign in",
+    "registerTitle": "Create account",
+    "name": "Name",
+    "namePlaceholder": "Your name",
+    "emailPlaceholder": "you@email.com",
+    "passwordPlaceholder": "••••••••",
+    "passwordMinPlaceholder": "At least 6 characters",
+    "createAccount": "Create account",
+    "termsRequired": "Terms and Conditions",
+    "termsMustAccept": "You must accept the Terms and Conditions to continue.",
+    "termsAccept": "I have read and accept the",
+    "termsLink": "Terms and Conditions",
+    "privacyLink": "Privacy Policy",
+    "termsAnd": "and the",
+    "newsOptIn": "I agree to receive news, promotions and personalised offers.",
+    "fieldsRequired": "Required fields",
+    "fillEmailPassword": "Please enter your email and password.",
+    "fillAllFields": "Please fill in all fields.",
+    "invalidPassword": "Invalid password",
+    "passwordMin6": "Password must be at least 6 characters.",
+    "loginError": "Sign-in error",
+    "invalidCredentials": "Invalid credentials. Please try again.",
+    "registerError": "Registration error",
+    "genericError": "Something went wrong. Please try again.",
+    "verifyEmailTitle": "Check your email",
+    "verifyEmailBody": "We sent a confirmation email to",
+    "verifyEmailHint": "Click the link in the email to activate your account, then sign in here.",
+    "goToLogin": "Go to sign in"
+  },
+  "onboarding": {
+    "slide1Title": "One account,\nall the flavours.",
+    "slide1Body": "Earn points at our restaurants and enjoy your meal.",
+    "slide2Title": "Earning is simple.",
+    "slide2Body": "After your meal, scan the QR code on your receipt and watch your balance grow.",
+    "slide3Title": "Rewards\nand Offers",
+    "slide3Body": "Redeem points for meals, desserts or exclusive offers for your next visit.",
+    "next": "Next",
+    "start": "Get started",
+    "skip": "Skip"
+  },
+  "home": {
+    "greeting": "Hello, {{name}}!",
+    "exclusiveOffers": "Exclusive Offers",
+    "ourRestaurants": "Our Restaurants",
+    "pointsCost": "{{count}} Points"
+  },
+  "offers": {
+    "f1": {
+      "title": "2nd Pizza at 50% Off",
+      "description": "Valid at Pizza Lab",
+      "tag": "Tomorrow's Offer"
+    },
+    "f2": {
+      "title": "Free Dessert",
+      "description": "Valid at Portuguese Lab",
+      "tag": "Special Offer"
+    },
+    "f3": {
+      "title": "Free Coffee",
+      "description": "Valid at all restaurants",
+      "tag": "This Week"
+    }
+  },
+  "menu": {
+    "title": "Menu",
+    "restaurants": {
+      "portugueseLab": "Portuguese Lab",
+      "pizzaLab": "Pizza Lab"
+    },
+    "portugueseLab": {
+      "categories": {
+        "menus": "Set menus",
+        "principais": "Main courses",
+        "vegetariano": "Vegetarian",
+        "sobremesa": "Desserts"
+      },
+      "items": {
+        "menuDoDia": { "name": "Daily Menu", "price": "€9.90" },
+        "menuExecutive": { "name": "Executive Menu", "price": "€14.90" },
+        "menuFamilia": { "name": "Family Menu", "price": "€32.00" },
+        "medalhoesNovilho": { "name": "Beef medallions", "price": "€12.90" },
+        "escalopesFrango": { "name": "Chicken escalopes", "price": "€11.90" },
+        "bifinhoFrango": { "name": "Grilled chicken strips", "price": "€12.50" },
+        "bacalhauBras": { "name": "Codfish à Brás", "price": "€14.50" },
+        "salmaoGrelhado": { "name": "Grilled salmon", "price": "€13.90" },
+        "risottoCogumelos": { "name": "Mushroom risotto", "price": "€11.50" },
+        "lasanhaLegumes": { "name": "Vegetable lasagne", "price": "€10.90" },
+        "saladaCaesar": { "name": "Caesar salad", "price": "€9.50" },
+        "pastelNata": { "name": "Custard tart", "price": "€1.50" },
+        "mousseChocolate": { "name": "Chocolate mousse", "price": "€4.90" },
+        "pudimFlan": { "name": "Crème caramel", "price": "€4.50" },
+        "tarteMaca": { "name": "Apple tart", "price": "€5.00" }
+      }
+    },
+    "pizzaLab": {
+      "categories": {
+        "pizzas": "Pizzas",
+        "entradas": "Starters",
+        "bebidas": "Drinks",
+        "sobremesa": "Desserts"
+      },
+      "items": {
+        "margherita": { "name": "Margherita", "price": "€9.50" },
+        "pepperoni": { "name": "Pepperoni", "price": "€11.50" },
+        "quattroFormaggi": { "name": "Quattro Formaggi", "price": "€12.90" },
+        "diavola": { "name": "Diavola", "price": "€11.90" },
+        "vegetariana": { "name": "Vegetarian", "price": "€10.90" },
+        "prosciuttoRucola": { "name": "Prosciutto & Rocket", "price": "€13.50" },
+        "paoAlho": { "name": "Garlic bread", "price": "€4.50" },
+        "bruschetta": { "name": "Bruschetta", "price": "€5.90" },
+        "saladaMista": { "name": "Mixed salad", "price": "€6.50" },
+        "agua": { "name": "Water 50cl", "price": "€1.80" },
+        "refrigerante": { "name": "Soft drink", "price": "€2.50" },
+        "sumoLaranja": { "name": "Orange juice", "price": "€3.50" },
+        "cerveja": { "name": "Beer 33cl", "price": "€3.00" },
+        "tiramisu": { "name": "Tiramisu", "price": "€5.50" },
+        "gelado": { "name": "Ice cream (2 scoops)", "price": "€4.00" },
+        "brownieChocolate": { "name": "Chocolate brownie", "price": "€5.90" }
+      }
+    }
+  },
+  "wallet": {
+    "title": "My Wallet",
+    "history": "Points History",
+    "filterAll": "All",
+    "filterEarned": "Earned",
+    "filterUsed": "Used",
+    "empty": "No transactions to show."
+  },
+  "ganhar": {
+    "title": "Earn Points",
+    "body": "Show this code at the restaurant to earn points on your purchase."
+  },
+  "rewards": {
+    "title": "Rewards",
+    "freeOffers": "Free Offers!",
+    "ptsToMilestone": "Only {{count}} points left until {{milestone}}!",
+    "allMilestones": "Congratulations! You've reached all milestones!",
+    "exclusiveOffers": "Exclusive Offers",
+    "tierCoffee": "Free Coffee",
+    "tierDessert": "Free Dessert",
+    "tierMeal": "Free Meal",
+    "insufficientPoints": "Insufficient points",
+    "needPoints": "You need {{cost}} points to redeem \"{{title}}\". You only have {{balance}}.",
+    "claimTitle": "Redeem offer",
+    "claimConfirm": "Redeem \"{{title}}\" for {{cost}} points?",
+    "claim": "Redeem",
+    "claimSuccess": "\"{{title}}\" added to your vouchers.",
+    "pointsCost": "{{count}} Points",
+    "ptsShort": "{{count}} pts"
+  },
+  "profile": {
+    "title": "My account",
+    "editProfile": "Edit Profile",
+    "notifications": "Notifications",
+    "help": "Help & Support",
+    "terms": "Terms and Conditions",
+    "privacy": "Privacy Policy",
+    "signOut": "Sign out",
+    "editTitle": "Edit Profile",
+    "phone": "Phone (optional)",
+    "phonePlaceholder": "+351 900 000 000",
+    "emailReadOnly": "Email cannot be changed.",
+    "language": "Language",
+    "langPt": "Português",
+    "langEn": "English",
+    "saved": "Profile updated successfully.",
+    "saveError": "Could not save profile."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Choose which alerts you want (when push notifications are available).",
+    "promotions": "Promotions and offers",
+    "promotionsDesc": "News and exclusive campaigns",
+    "pointsEarned": "Points earned",
+    "pointsEarnedDesc": "When you earn points on a visit",
+    "voucherReminders": "Voucher reminders",
+    "voucherRemindersDesc": "Before your vouchers expire"
+  },
+  "faq": {
+    "title": "Help & Support",
+    "q1": "How do I earn points?",
+    "a1": "After your meal, show your QR code in the Earn section or on your receipt at the restaurant. Points are credited to your wallet.",
+    "q2": "What is the Earn section?",
+    "a2": "Earn shows your customer code. Show it at the restaurant to link your purchase to your loyalty account.",
+    "q3": "How do I redeem an offer?",
+    "a3": "In Rewards, pick an offer you can afford and tap Redeem. The voucher will be available in your wallet.",
+    "q4": "Do points expire?",
+    "a4": "Validity rules depend on the programme. Check conditions at the restaurant or contact support.",
+    "q5": "Can I use points at all restaurants?",
+    "a5": "Your balance is shared across JD group restaurants. Some offers may only be valid at one location.",
+    "q6": "How do I change my details?",
+    "a6": "Go to Account → Edit Profile to update your name, phone and app language.",
+    "q7": "I forgot my password",
+    "a7": "On the sign-in page, use password recovery by email (when available) or contact support.",
+    "q8": "How is my data protected?",
+    "a8": "See the Privacy Policy under Account. Data is processed in line with applicable law."
+  },
+  "legal": {
+    "termsTitle": "Terms and Conditions",
+    "privacyTitle": "Privacy Policy",
+    "lastUpdated": "Last updated: May 2026",
+    "placeholderIntro": "This text is a placeholder until we receive the final version from the client.",
+    "termsS1Title": "1. Acceptance",
+    "termsS1": "By using the JD Chef Domingos app, you accept these terms. If you do not agree, do not use the app.",
+    "termsS2Title": "2. Loyalty programme",
+    "termsS2": "Points and rewards are managed by the loyalty partner. Balance and offers may change according to programme rules.",
+    "termsS3Title": "3. Account",
+    "termsS3": "You are responsible for keeping your account credentials confidential and for all activity on your account.",
+    "privacyS1Title": "1. Controller",
+    "privacyS1": "The data controller is Grupo PIE / JD restaurant network, reachable at grupopie@grupopie.com.",
+    "privacyS2Title": "2. Data collected",
+    "privacyS2": "We collect account data (name, email, optional phone), points history and app preferences.",
+    "privacyS3Title": "3. Purpose",
+    "privacyS3": "Data is used to run the loyalty programme, authorised communications and service improvement."
+  }
+}

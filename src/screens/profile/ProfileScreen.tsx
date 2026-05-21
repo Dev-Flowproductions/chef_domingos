@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,25 +10,52 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
+import { useUserStore } from '../../store/userStore';
+import { useLocaleStore, AppLocale } from '../../store/localeStore';
 import { USE_MOCK } from '../../lib/config';
 import JDLogo from '../../components/JDLogo';
+import type { ProfileStackParamList } from '../../navigation/types';
 
-const SETTINGS: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-  { icon: 'person-outline',           label: 'Editar Perfil' },
-  { icon: 'notifications-outline',    label: 'Notificações' },
-  { icon: 'help-circle-outline',      label: 'Ajuda e Suporte' },
-  { icon: 'document-text-outline',    label: 'Termos e Condições' },
-  { icon: 'lock-closed-outline',      label: 'Política de Privacidade' },
+type ProfileNav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
+
+const SETTINGS: {
+  icon: keyof typeof Ionicons.glyphMap;
+  labelKey: string;
+  route: keyof ProfileStackParamList;
+}[] = [
+  { icon: 'person-outline', labelKey: 'profile.editProfile', route: 'EditProfile' },
+  { icon: 'notifications-outline', labelKey: 'profile.notifications', route: 'Notifications' },
+  { icon: 'help-circle-outline', labelKey: 'profile.help', route: 'Help' },
+  { icon: 'document-text-outline', labelKey: 'profile.terms', route: 'Terms' },
+  { icon: 'lock-closed-outline', labelKey: 'profile.privacy', route: 'Privacy' },
 ];
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<ProfileNav>();
+  const { t } = useTranslation();
   const { user, signOut } = useAuthStore();
-  const userName = (user as any)?.user_metadata?.name || 'Maria Silva';
-  const email = (user as any)?.email || 'maria.silva@email.com';
+  const { profile, fetchProfile } = useUserStore();
+  const { setLocale } = useLocaleStore();
+
+  useEffect(() => {
+    if (user?.id) {
+      void fetchProfile(user.id).then(() => {
+        const lang = useUserStore.getState().profile?.preferred_language;
+        if (lang === 'pt' || lang === 'en') {
+          void setLocale(lang as AppLocale);
+        }
+      });
+    }
+  }, [user?.id]);
+
+  const metaName = (user as { user_metadata?: { name?: string } })?.user_metadata?.name;
+  const userName = profile?.name || metaName || '—';
+  const email = profile?.email || user?.email || '—';
 
   return (
     <View style={styles.root}>
@@ -37,64 +64,50 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
       >
-        {/* Logo */}
         <View style={styles.logoWrap}>
           <JDLogo size="small" />
         </View>
 
-        {/* Title */}
-        <Text style={styles.pageTitle}>A minha conta</Text>
+        <Text style={styles.pageTitle}>{t('profile.title')}</Text>
 
-        {/* User info */}
         <View style={styles.userBlock}>
-      <View style={styles.avatar}>
-          <Ionicons name="person" size={40} color="#888" />
-        </View>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={40} color="#888" />
+          </View>
           <Text style={styles.userName}>{userName}</Text>
           <Text style={styles.userEmail}>{email}</Text>
         </View>
 
-        {/* Settings list */}
         <View style={styles.settingsList}>
           {SETTINGS.map((item, idx) => (
-            <View key={item.label}>
-              <TouchableOpacity style={styles.settingsRow} activeOpacity={0.7}>
+            <View key={item.route}>
+              <TouchableOpacity
+                style={styles.settingsRow}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate(item.route)}
+              >
                 <Ionicons name={item.icon} size={22} color={Colors.gold} style={styles.settingsIcon} />
-                <Text style={styles.settingsLabel}>{item.label}</Text>
+                <Text style={styles.settingsLabel}>{t(item.labelKey)}</Text>
               </TouchableOpacity>
               {idx < SETTINGS.length - 1 && <View style={styles.divider} />}
             </View>
           ))}
         </View>
 
-        {/* Dev navigation only visible in mock mode */}
         {USE_MOCK && (
           <View style={styles.devSection}>
             <Text style={styles.devTitle}>Dev Navigation</Text>
             <TouchableOpacity
               style={styles.devBtn}
-              onPress={() => navigation.navigate('Login')}
+              onPress={() => navigation.getParent()?.navigate('Login' as never)}
             >
               <Text style={styles.devBtnText}>→ Login Screen</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.devBtn}
-              onPress={() => navigation.navigate('Register')}
-            >
-              <Text style={styles.devBtnText}>→ Register Screen</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.devBtn}
-              onPress={() => navigation.navigate('Onboarding')}
-            >
-              <Text style={styles.devBtnText}>→ Onboarding Screen</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Sign out */}
         <TouchableOpacity style={styles.signOut} onPress={signOut} activeOpacity={0.85}>
-          <Text style={styles.signOutText}>Terminar sessão</Text>
+          <Text style={styles.signOutText}>{t('profile.signOut')}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 24 }} />
@@ -134,7 +147,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
-  avatarText: { fontSize: 40 }, // kept for reference
   userName: { fontSize: 26, color: Colors.textPrimary, marginBottom: 4 },
   userEmail: { fontSize: 18, color: Colors.textPrimary },
   settingsList: {
