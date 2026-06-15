@@ -32,10 +32,10 @@ const POINTS_TIERS = [
 
 const MAX_PTS     = 900;
 const CIRCLE_SIZE = 39;
-const BAR_INSET   = CIRCLE_SIZE / 2;
 const BAR_H       = 14;
 const BAR_TOP     = (CIRCLE_SIZE - BAR_H) / 2;
 const TIER_LABEL_WIDTH = 52;
+const TIER_HALF   = TIER_LABEL_WIDTH / 2;
 const CONTAINER_H = CIRCLE_SIZE + 20;
 
 const FALLBACK_IMAGES = [
@@ -54,8 +54,8 @@ export default function RecompensasScreen() {
   const [barWidth, setBarWidth] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
-  const trackWidth = Math.max(0, barWidth - CIRCLE_SIZE);
-  const fillWidth = trackWidth * Math.min(balance / MAX_PTS, 1);
+  const trackSpan = Math.max(0, barWidth - TIER_LABEL_WIDTH);
+  const fillWidth = trackSpan * Math.min(balance / MAX_PTS, 1);
 
   const onBarLayout = (e: LayoutChangeEvent) => {
     setBarWidth(e.nativeEvent.layout.width);
@@ -144,8 +144,8 @@ export default function RecompensasScreen() {
 
                 {barWidth > 0 && POINTS_TIERS.map((tier) => {
                   const isDone = balance >= tier.pts;
-                  const centerX = BAR_INSET + trackWidth * (tier.pts / MAX_PTS);
-                  const left = centerX - TIER_LABEL_WIDTH / 2;
+                  const centerX = TIER_HALF + trackSpan * (tier.pts / MAX_PTS);
+                  const left = centerX - TIER_HALF;
                   return (
                     <View key={tier.pts} style={[styles.tierWrapper, { left }]}>
                       <View style={[styles.tierCircle, isDone && styles.tierCircleDone]}>
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
   progressTrack: {
     position: 'absolute',
     top: BAR_TOP,
-    left: BAR_INSET,
-    right: BAR_INSET,
+    left: TIER_HALF,
+    right: TIER_HALF,
     height: BAR_H,
     borderRadius: 30,
     backgroundColor: 'rgba(191,153,78,0.5)',
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   progressFill: {
     position: 'absolute',
     top: BAR_TOP,
-    left: BAR_INSET,
+    left: TIER_HALF,
     height: BAR_H,
     borderRadius: 30,
     backgroundColor: Colors.gold,
