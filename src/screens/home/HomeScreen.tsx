@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { HomeStackParamList } from '../../navigation/types';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -70,10 +70,16 @@ export default function HomeScreen() {
   const { catalog, catalogLoading, fetchCatalog } = useVouchersStore();
 
   useEffect(() => {
-    fetchPoints();
-    fetchCatalog();
     if (user?.id) fetchProfile(user.id);
   }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) return;
+      fetchPoints();
+      fetchCatalog();
+    }, [user?.id]),
+  );
 
   return (
     <View style={styles.root}>
@@ -93,7 +99,7 @@ export default function HomeScreen() {
             <ActivityIndicator color={Colors.gold} style={{ marginVertical: 12 }} />
           ) : (
             <>
-              <Text style={styles.pointsNum}>{balance}</Text>
+              <Text style={styles.pointsNum}>{Number.isFinite(balance) ? balance : 0}</Text>
               <Text style={styles.pointsLabel}>{t('common.points')}</Text>
             </>
           )}

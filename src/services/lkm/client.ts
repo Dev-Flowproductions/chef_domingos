@@ -1,7 +1,9 @@
 // Base client for calling Supabase Edge Functions (LKM proxy)
 // Automatically attaches the current Supabase session JWT.
 
+import { fetchWithTimeout } from '../../lib/fetchWithTimeout';
 import { supabase } from '../../lib/supabase';
+import { withTimeout } from '../../lib/withTimeout';
 
 const BASE = process.env.EXPO_PUBLIC_SUPABASE_URL
   ? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1`
@@ -14,11 +16,34 @@ export class LkmServiceError extends Error {
   }
 }
 
+async function getAccessToken(): Promise<string> {
+  const { data } = await withTimeout(
+    supabase.auth.getSession(),
+    8000,
+    'lkm.getSession',
+  ) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+
+  let session = data.session;
+  if (!session?.access_token) throw new LkmServiceError(401, 'Not authenticated');
+
+  const expiresAtMs = (session.expires_at ?? 0) * 1000;
+  if (expiresAtMs < Date.now() + 60_000) {
+    const { data: refreshed, error } = await withTimeout(
+      supabase.auth.refreshSession(),
+      8000,
+      'lkm.refreshSession',
+    ) as Awaited<ReturnType<typeof supabase.auth.refreshSession>>;
+    if (error || !refreshed.session?.access_token) {
+      throw new LkmServiceError(401, 'Session expired — please sign in again');
+    }
+    session = refreshed.session;
+  }
+
+  return session.access_token;
+}
+
 async function getAuthHeader(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new LkmServiceError(401, 'Not authenticated');
-  return `Bearer ${token}`;
+  return `Bearer ${await getAccessToken()}`;
 }
 
 interface FetchOptions {
@@ -44,7 +69,7 @@ export async function lkmCall<T = unknown>(
 
   const authHeader = await getAuthHeader();
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method,
     headers: {
       Authorization: authHeader,
@@ -52,6 +77,8 @@ export async function lkmCall<T = unknown>(
       apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
     },
     body: body != null ? JSON.stringify(body) : undefined,
+  }).catch((err: Error) => {
+    throw new LkmServiceError(0, err.message || 'Network request failed');
   });
 
   const text = await res.text();

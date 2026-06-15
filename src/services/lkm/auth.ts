@@ -48,10 +48,12 @@ export async function linkExistingCard(params: {
 }
 
 export interface LkmProfile {
-  linked:     boolean;
-  cardCode?:  string;
-  shortCode?: string;
-  lkmProfile?: Record<string, unknown>;
+  linked:              boolean;
+  cardCode?:           string;
+  shortCode?:          string;
+  needsRegistration?:  boolean;
+  errorMessage?:       string;
+  lkmProfile?:         Record<string, unknown>;
 }
 
 export async function getLkmProfile(): Promise<LkmProfile> {

@@ -38,7 +38,7 @@ export const usePointsStore = create<PointsState>((set) => ({
       const data: PointsData = await getPointsBalance();
       set({ ...data, loading: false });
     } catch (err) {
-      set({ loading: false, error: (err as Error).message });
+      set({ loading: false, error: (err as Error).message, balance: 0, converted: 0, progress: 0, ptsToNext: 300 });
     }
   },
 

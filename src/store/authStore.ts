@@ -1,12 +1,16 @@
 import { create } from 'zustand';
-import { Session, User } from '@supabase/supabase-js';
+import { AppState, type AppStateStatus } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { USE_MOCK } from '../lib/config';
 import { MOCK_USER } from '../lib/mockData';
-import { registerEmailWithLkm } from '../services/lkm/auth';
+import { ensureLkmCardLinked } from '../services/lkm/ensureCard';
 import { ensureUserRow } from '../lib/ensureUserProfile';
 import { withTimeout } from '../lib/withTimeout';
 import { useUserStore } from './userStore';
+
+const LKM_PENDING_PWD_KEY = 'lkm_pending_password';
 
 interface AuthState {
   session: Session | null;
@@ -30,6 +34,43 @@ const MOCK_SESSION = {
   },
 } as unknown as Session;
 
+let authListenerRegistered = false;
+let initInFlight: Promise<void> | null = null;
+
+function setupAuthLifecycle() {
+  if (authListenerRegistered || USE_MOCK) return;
+  authListenerRegistered = true;
+
+  const onAppStateChange = (state: AppStateStatus) => {
+    const hasSession = !!useAuthStore.getState().session;
+    if (!hasSession) return;
+    if (state === 'active') {
+      void supabase.auth.startAutoRefresh();
+    } else {
+      void supabase.auth.stopAutoRefresh();
+    }
+  };
+
+  AppState.addEventListener('change', onAppStateChange);
+
+  supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+    useAuthStore.getState().setSession(session);
+
+    if (event === 'SIGNED_OUT') {
+      useUserStore.getState().clearProfile();
+    }
+  });
+}
+
+async function clearLocalAuthSession() {
+  try {
+    await supabase.auth.stopAutoRefresh();
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch {
+    // ignore — best effort when offline
+  }
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   session: USE_MOCK ? MOCK_SESSION : null,
   user: USE_MOCK ? MOCK_SESSION.user as unknown as User : null,
@@ -45,7 +86,28 @@ export const useAuthStore = create<AuthState>((set) => ({
       return { error: null };
     }
     const { error } = await supabase.auth.signInWithPassword({ email: _email, password: _password });
-    return { error };
+    if (error) return { error };
+
+    // Save password so initialize() can retry LKM registration after app restarts
+    await SecureStore.setItemAsync(LKM_PENDING_PWD_KEY, _password).catch(() => {});
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const displayName =
+        (sessionData.session?.user.user_metadata?.name as string | undefined) ||
+        _email.split('@')[0];
+      if (sessionData.session?.user) {
+        await ensureUserRow(sessionData.session.user);
+      }
+      const lkmResult = await ensureLkmCardLinked({ name: displayName, password: _password });
+      if (lkmResult.linked) {
+        await SecureStore.deleteItemAsync(LKM_PENDING_PWD_KEY).catch(() => {});
+      }
+    } catch (lkmErr) {
+      console.warn('[authStore] LKM link on login failed:', lkmErr);
+    }
+
+    return { error: null };
   },
 
   signUp: async (_email, _password, _name) => {
@@ -65,8 +127,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     // Non-fatal: if LKM registration fails the user can link their card later.
     if (data.session?.user) {
       await ensureUserRow(data.session.user);
+      // Save password so initialize() can retry LKM registration after app restarts
+      await SecureStore.setItemAsync(LKM_PENDING_PWD_KEY, _password).catch(() => {});
       try {
-        await registerEmailWithLkm({ name: _name, email: _email, password: _password });
+        const lkmResult = await ensureLkmCardLinked({ name: _name, password: _password });
+        if (lkmResult.linked) {
+          await SecureStore.deleteItemAsync(LKM_PENDING_PWD_KEY).catch(() => {});
+        }
       } catch (lkmErr) {
         console.warn('[authStore] LKM registration failed, will retry on next login:', lkmErr);
       }
@@ -86,32 +153,59 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
 
-    try {
-      const { data } = await withTimeout(
-        supabase.auth.getSession(),
-        8000,
-        'auth.getSession',
-      ) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
-      set({ session: data.session, user: data.session?.user ?? null, loading: false });
-      if (data.session?.user) {
-        void ensureUserRow(data.session.user).catch((err) => {
-          console.warn('[authStore] ensureUserRow failed:', err);
-        });
-      }
-    } catch (err) {
-      console.warn('[authStore] initialize failed, continuing without session:', err);
-      set({ session: null, user: null, loading: false });
+    if (initInFlight) {
+      await initInFlight;
+      return;
     }
 
-    supabase.auth.onAuthStateChange((_event: unknown, session: Session | null) => {
-      set({ session, user: session?.user ?? null });
-      if (session?.user) {
-        void ensureUserRow(session.user).catch((err) => {
-          console.warn('[authStore] ensureUserRow failed:', err);
-        });
-      } else {
-        useUserStore.getState().clearProfile();
+    initInFlight = (async () => {
+      setupAuthLifecycle();
+      await supabase.auth.stopAutoRefresh();
+
+      try {
+        const { data } = await withTimeout(
+          supabase.auth.getSession(),
+          8000,
+          'auth.getSession',
+        ) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+        set({ session: data.session, user: data.session?.user ?? null, loading: false });
+        if (data.session) {
+          void supabase.auth.startAutoRefresh();
+        }
+        if (data.session?.user) {
+          void ensureUserRow(data.session.user).catch((err) => {
+            console.warn('[authStore] ensureUserRow failed:', err);
+          });
+          void (async () => {
+            try {
+              const pendingPwd = await SecureStore.getItemAsync(LKM_PENDING_PWD_KEY).catch(() => null);
+              const displayName =
+                (data.session!.user.user_metadata?.name as string | undefined) ||
+                data.session!.user.email?.split('@')[0] ||
+                'Cliente';
+              const lkmResult = await ensureLkmCardLinked(
+                pendingPwd ? { name: displayName, password: pendingPwd } : undefined,
+              );
+              if (lkmResult.linked && pendingPwd) {
+                await SecureStore.deleteItemAsync(LKM_PENDING_PWD_KEY).catch(() => {});
+              }
+            } catch (err) {
+              console.warn('[authStore] ensureLkmCardLinked failed:', err);
+            }
+          })();
+        }
+      } catch (err) {
+        console.warn('[authStore] initialize failed, continuing without session:', err);
+        await clearLocalAuthSession();
+        set({ session: null, user: null, loading: false });
+        throw err;
       }
-    });
+    })();
+
+    try {
+      await initInFlight;
+    } catch {
+      initInFlight = null;
+    }
   },
 }));

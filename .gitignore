@@ -69,3 +69,12 @@ logs/
 # Supabase local dev
 supabase/.branches/
 supabase/.temp/
+
+# Deploy / MCP artifacts (never commit)
+.tmp-*.json
+.deploy-*.json
+.mcp-*.json
+.call-mcp-*.json
+*-deploy-args.json
+mcp-deploy-*.json
+mcp-arg*.json

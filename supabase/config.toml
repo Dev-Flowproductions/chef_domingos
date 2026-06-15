@@ -1,0 +1,18 @@
+# Supabase local / deploy config
+# verify_jwt=false: gateway skips legacy JWT check (ES256 tokens fail there).
+# Each LKM function validates the user JWT in code via getSupabaseUser().
+
+[functions.lkm-account]
+verify_jwt = false
+
+[functions.lkm-points]
+verify_jwt = false
+
+[functions.lkm-vouchers]
+verify_jwt = false
+
+[functions.lkm-transactions]
+verify_jwt = false
+
+[functions.lkm-scan]
+verify_jwt = false

@@ -7,7 +7,8 @@
     "points": "PONTOS",
     "pointsLower": "Pontos",
     "success": "Sucesso!",
-    "error": "Erro"
+    "error": "Erro",
+    "retry": "Tentar novamente"
   },
   "tabs": {
     "home": "Início",
@@ -33,6 +34,8 @@
     "emailPlaceholder": "o.seu@email.com",
     "passwordPlaceholder": "••••••••",
     "passwordMinPlaceholder": "Mínimo 6 caracteres",
+    "showPassword": "Mostrar palavra-passe",
+    "hidePassword": "Ocultar palavra-passe",
     "createAccount": "Criar conta",
     "termsRequired": "Termos e Condições",
     "termsMustAccept": "Tem de aceitar os Termos e Condições para continuar.",
@@ -157,7 +160,12 @@
   },
   "ganhar": {
     "title": "Ganhar Pontos",
-    "body": "Apresente este código no restaurante para acumular pontos na sua compra."
+    "body": "Apresente este código no restaurante para acumular pontos na sua compra.",
+    "copyCode": "Copiar código",
+    "copiedTitle": "Copiado",
+    "copiedBody": "O código foi copiado para a área de transferência.",
+    "cardNotReady": "O seu cartão de fidelização ainda não está ativo.",
+    "cardNotReadyHint": "Isto não é normal depois de entrar na conta. Saia, volte a entrar com email e palavra-passe (isto regista o cartão na LKM), ou peça ao administrador para configurar as chaves LKM no Supabase."
   },
   "rewards": {
     "title": "Recompensas",

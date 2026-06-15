@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
+import PasswordInput from '../../components/PasswordInput';
 
 export default function RegisterScreen() {
   const insets     = useSafeAreaInsets();
@@ -131,11 +132,9 @@ export default function RegisterScreen() {
 
           <View style={styles.field}>
             <Text style={styles.label}>{t('auth.password')}</Text>
-            <TextInput
-              style={styles.input}
+            <PasswordInput
               placeholder={t('auth.passwordMinPlaceholder')}
               placeholderTextColor="#aaa"
-              secureTextEntry
               value={password}
               onChangeText={setPassword}
             />

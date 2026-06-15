@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { usePointsStore } from '../../store/pointsStore';
+import { useAuthStore } from '../../store/authStore';
 import { useLocaleStore, localeTag } from '../../store/localeStore';
 import { getTransactions, AppTransaction, TxFilter } from '../../services/lkm/transactions';
 import JDLogo from '../../components/JDLogo';
@@ -47,6 +48,7 @@ export default function WalletScreen() {
   const dateTag = localeTag(locale);
 
   const { balance, loading: ptsLoading, fetch: fetchPoints } = usePointsStore();
+  const { user } = useAuthStore();
 
   const [filter, setFilter] = useState<FilterKey>('all');
   const [transactions, setTransactions] = useState<AppTransaction[]>([]);
@@ -66,9 +68,10 @@ export default function WalletScreen() {
   }, []);
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchPoints();
     loadTransactions(filter);
-  }, []);
+  }, [user?.id]);
 
   const onFilterChange = (f: FilterKey) => {
     setFilter(f);
@@ -76,6 +79,7 @@ export default function WalletScreen() {
   };
 
   const onRefresh = async () => {
+    if (!user?.id) return;
     setRefreshing(true);
     await Promise.all([fetchPoints(), loadTransactions(filter)]);
     setRefreshing(false);
@@ -100,7 +104,7 @@ export default function WalletScreen() {
             <ActivityIndicator color={Colors.gold} style={{ marginVertical: 8 }} />
           ) : (
             <>
-              <Text style={styles.pts}>{balance}</Text>
+              <Text style={styles.pts}>{Number.isFinite(balance) ? balance : 0}</Text>
               <Text style={styles.ptsLabel}>PONTOS</Text>
             </>
           )}

@@ -9,13 +9,12 @@ import {
   getClientToken,
   getSupabaseUser,
   getLkmCard,
+  getLkmConfig,
   serviceDb,
   jsonResponse,
   errorResponse,
   LkmApiError,
 } from '../_shared/lkm-client.ts';
-
-const LKM_STORE_ID = Deno.env.get('LKM_STORE_EXTERNAL_ID')!;
 
 // POST /v2/Transactions body is IdStringInput: { id: string }
 // Response is a TransactionsHistoryResponse (or similar) with points info
@@ -40,9 +39,10 @@ Deno.serve(async (req: Request) => {
     const { user } = await getSupabaseUser(req);
     const { cardCode, accessToken } = await getLkmCard(user.id);
     const clientToken = await getClientToken(accessToken);
+    const { storeId: configStoreId } = await getLkmConfig();
 
     const body: { transactionId?: string; storeId?: string } = await req.json();
-    const { transactionId, storeId = LKM_STORE_ID } = body;
+    const { transactionId, storeId = configStoreId } = body;
 
     if (!transactionId) {
       return errorResponse('transactionId is required', 400);

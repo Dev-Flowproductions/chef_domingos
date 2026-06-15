@@ -11,13 +11,12 @@ import {
   getClientToken,
   getSupabaseUser,
   getLkmCard,
+  getLkmConfig,
   serviceDb,
   jsonResponse,
   errorResponse,
   LkmApiError,
 } from '../_shared/lkm-client.ts';
-
-const LKM_STORE_ID = Deno.env.get('LKM_STORE_EXTERNAL_ID')!;
 
 // ── Catalog ───────────────────────────────────────────────────────────────────
 
@@ -227,6 +226,7 @@ Deno.serve(async (req: Request) => {
     const { user } = await getSupabaseUser(req);
     const { accessToken } = await getLkmCard(user.id);
     const clientToken = await getClientToken(accessToken);
+    const { storeId: LKM_STORE_ID } = await getLkmConfig();
 
     // GET requests
     if (req.method === 'GET') {

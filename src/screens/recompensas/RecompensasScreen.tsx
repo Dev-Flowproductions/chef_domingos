@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { usePointsStore } from '../../store/pointsStore';
+import { useAuthStore } from '../../store/authStore';
 import { useVouchersStore } from '../../store/vouchersStore';
 import JDLogo from '../../components/JDLogo';
 import {
@@ -48,6 +49,7 @@ export default function RecompensasScreen() {
 
   const { balance, nextMilestone, ptsToNext, loading: ptsLoading, fetch: fetchPoints } = usePointsStore();
   const { catalog, catalogLoading, fetchCatalog, claim, claiming } = useVouchersStore();
+  const { user } = useAuthStore();
 
   const [barWidth, setBarWidth] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,9 +62,10 @@ export default function RecompensasScreen() {
   };
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchPoints();
     fetchCatalog();
-  }, []);
+  }, [user?.id]);
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -2,11 +2,62 @@
 // Handles: HMAC-SHA256 signing, AppJwtToken caching, ClientJwtToken fetching
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { md5Hex } from './md5.ts';
 
-const LKM_BASE_URL    = Deno.env.get('LKM_BASE_URL')!;
-const LKM_TOKEN_APP   = Deno.env.get('LKM_TOKEN_APP')!;
-const LKM_HMAC_SECRET = Deno.env.get('LKM_HMAC_SECRET')!;
-const LKM_STORE_ID    = Deno.env.get('LKM_STORE_EXTERNAL_ID')!;
+let LKM_BASE_URL = Deno.env.get('LKM_BASE_URL')?.replace(/\/$/, '') ?? '';
+let LKM_TOKEN_APP = Deno.env.get('LKM_TOKEN_APP') ?? '';
+let LKM_HMAC_SECRET =
+  Deno.env.get('LKM_HMAC_SECRET') ?? Deno.env.get('LKM_PARTNER_KEY') ?? '';
+let LKM_STORE_ID = Deno.env.get('LKM_STORE_EXTERNAL_ID') ?? '';
+export let LKM_GRUPO_DESCONTO = Number(Deno.env.get('LKM_GRUPO_DESCONTO') ?? '0');
+
+let _configLoaded = false;
+
+async function loadLkmConfig(): Promise<void> {
+  if (_configLoaded) return;
+
+  if (LKM_BASE_URL && LKM_TOKEN_APP && LKM_HMAC_SECRET && LKM_STORE_ID) {
+    _configLoaded = true;
+    return;
+  }
+
+  const db = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
+  const { data, error } = await db.from('lkm_runtime_config').select('key, value');
+  if (error) {
+    console.warn('[lkm-client] loadLkmConfig failed:', error.message);
+  } else {
+    for (const row of data ?? []) {
+      if (row.key === 'LKM_BASE_URL') LKM_BASE_URL = String(row.value).replace(/\/$/, '');
+      if (row.key === 'LKM_TOKEN_APP') LKM_TOKEN_APP = String(row.value);
+      if (row.key === 'LKM_HMAC_SECRET') LKM_HMAC_SECRET = String(row.value);
+      if (row.key === 'LKM_STORE_EXTERNAL_ID') LKM_STORE_ID = String(row.value);
+      if (row.key === 'LKM_GRUPO_DESCONTO') LKM_GRUPO_DESCONTO = Number(row.value);
+    }
+  }
+
+  _configLoaded = true;
+}
+
+export async function getLkmConfig() {
+  await loadLkmConfig();
+  return { grupoDesconto: LKM_GRUPO_DESCONTO, storeId: LKM_STORE_ID };
+}
+
+function assertLkmConfig() {
+  const missing: string[] = [];
+  if (!LKM_BASE_URL) missing.push('LKM_BASE_URL');
+  if (!LKM_TOKEN_APP) missing.push('LKM_TOKEN_APP');
+  if (!LKM_HMAC_SECRET) missing.push('LKM_HMAC_SECRET (PartnerKey)');
+  if (!LKM_STORE_ID) missing.push('LKM_STORE_EXTERNAL_ID');
+  if (missing.length) {
+    throw new Error(
+      `LKM not configured. Set Supabase secrets or lkm_runtime_config rows: ${missing.join(', ')}`,
+    );
+  }
+}
 
 const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -14,15 +65,6 @@ const SUPABASE_SERVICE  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // ── HMAC-SHA256 signing ───────────────────────────────────────────────────────
 // X-Signature format: <timestamp>:<nonce>:<hmac-sha256-hex>
 // Message to sign:    <nonce> + <timestamp> + <md5(body)>
-// Source: LKM API Customer v1.0.0, Section 2 "X‑Signature Generation Procedure"
-
-async function md5Hex(text: string): Promise<string> {
-  const enc = new TextEncoder();
-  const buf = await crypto.subtle.digest('MD5', enc.encode(text));
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
 
 async function hmacSha256Hex(message: string, secret: string): Promise<string> {
   const enc = new TextEncoder();
@@ -48,7 +90,7 @@ function generateNonce(): string {
 async function buildSignature(body?: string): Promise<string> {
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const nonce     = generateNonce();
-  const bodyHash  = await md5Hex(body ?? '');
+  const bodyHash  = md5Hex(body ?? '');
   const message   = nonce + timestamp + bodyHash;
   const sig       = await hmacSha256Hex(message, LKM_HMAC_SECRET);
   return `${timestamp}:${nonce}:${sig}`;
@@ -60,6 +102,8 @@ let _appToken: string | null = null;
 let _appTokenExpiry: number = 0;
 
 async function getAppToken(): Promise<string> {
+  await loadLkmConfig();
+  assertLkmConfig();
   const now = Date.now();
 
   // In-memory cache within same function invocation
@@ -148,6 +192,7 @@ export async function lkmFetch<T = unknown>(
   path: string,
   opts: LkmFetchOptions = {},
 ): Promise<T> {
+  await loadLkmConfig();
   const { method = 'GET', body, clientToken, queryParams } = opts;
 
   const jwt = clientToken ?? (await getAppToken());

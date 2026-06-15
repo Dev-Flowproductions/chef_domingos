@@ -7,7 +7,8 @@
     "points": "POINTS",
     "pointsLower": "Points",
     "success": "Success!",
-    "error": "Error"
+    "error": "Error",
+    "retry": "Try again"
   },
   "tabs": {
     "home": "Home",
@@ -33,6 +34,8 @@
     "emailPlaceholder": "you@email.com",
     "passwordPlaceholder": "••••••••",
     "passwordMinPlaceholder": "At least 6 characters",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "createAccount": "Create account",
     "termsRequired": "Terms and Conditions",
     "termsMustAccept": "You must accept the Terms and Conditions to continue.",
@@ -157,7 +160,12 @@
   },
   "ganhar": {
     "title": "Earn Points",
-    "body": "Show this code at the restaurant to earn points on your purchase."
+    "body": "Show this code at the restaurant to earn points on your purchase.",
+    "copyCode": "Copy code",
+    "copiedTitle": "Copied",
+    "copiedBody": "The code was copied to your clipboard.",
+    "cardNotReady": "Your loyalty card is not active yet.",
+    "cardNotReadyHint": "This is not the default state after sign-in. Sign out and sign in again with email and password (that registers your LKM card), or ask your admin to set the LKM secrets on Supabase."
   },
   "rewards": {
     "title": "Rewards",

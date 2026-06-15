@@ -1,4 +1,5 @@
 import { USE_MOCK } from './config';
+import { fetchWithTimeout } from './fetchWithTimeout';
 
 // Only import and initialize Supabase when not in mock mode.
 // This prevents crashes from missing env vars during frontend-only development.
@@ -13,6 +14,10 @@ const createSupabaseClient = () => {
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY');
+  }
+
   const ExpoSecureStoreAdapter = {
     getItem: (key: string) => SecureStore.getItemAsync(key),
     setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
@@ -20,6 +25,9 @@ const createSupabaseClient = () => {
   };
 
   return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      fetch: fetchWithTimeout,
+    },
     auth: {
       storage: ExpoSecureStoreAdapter,
       autoRefreshToken: true,
