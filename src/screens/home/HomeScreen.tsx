@@ -1,151 +1,292 @@
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
+  Image,
+  ScrollView,
   TouchableOpacity,
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { MainTabParamList } from '../../navigation';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { HomeStackParamList } from '../../navigation/types';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, Assets } from '../../lib/theme';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
-import { useMenu } from '../../hooks/useMenu';
-import { useCartStore } from '../../store/cartStore';
-import PizzaCard from '../../components/PizzaCard';
-import { Pizza } from '../../types';
+import { useUserStore } from '../../store/userStore';
+import { usePointsStore } from '../../store/pointsStore';
+import { useVouchersStore } from '../../store/vouchersStore';
+import JDLogo from '../../components/JDLogo';
+import {
+  getFallbackCatalog,
+  getFallbackOfferImage,
+  getOfferCardTheme,
+  localizeCatalogItem,
+} from '../../lib/offerI18n';
+import type { RestaurantId } from '../../lib/menuI18n';
 
-type Nav = BottomTabNavigationProp<MainTabParamList>;
+type HomeNav = NativeStackNavigationProp<HomeStackParamList, 'HomeMain'>;
+
+const { width } = Dimensions.get('window');
+const CARD_W = width * 0.75;
+
+const RESTAURANTS: {
+  id: string;
+  restaurantId: RestaurantId;
+  image: number;
+  imageScale: number;
+  imageBg: string;
+}[] = [
+  {
+    id: '1',
+    restaurantId: 'portugueseLab',
+    image: require('../../assets/portuguese-lab-food.jpg'),
+    imageScale: 2.25,
+    imageBg: '#ffffff',
+  },
+  {
+    id: '2',
+    restaurantId: 'pizzaLab',
+    image: require('../../assets/pizza-lab-food.jpg'),
+    imageScale: 2.15,
+    imageBg: '#1a1a1a',
+  },
+];
 
 export default function HomeScreen() {
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation<Nav>();
+  const insets     = useSafeAreaInsets();
+  const navigation = useNavigation<HomeNav>();
+  const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { data: pizzas } = useMenu();
-  const { addItem, items } = useCartStore();
+  const { profile, fetchProfile } = useUserStore();
+  const metaName = (user as { user_metadata?: { name?: string } })?.user_metadata?.name;
+  const userName = profile?.name || metaName || '—';
 
-  const featured = pizzas?.slice(0, 3) ?? [];
+  const { balance, loading: ptsLoading, fetch: fetchPoints } = usePointsStore();
+  const { catalog, catalogLoading, fetchCatalog } = useVouchersStore();
+
+  useEffect(() => {
+    if (user?.id) fetchProfile(user.id);
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) return;
+      fetchPoints();
+      fetchCatalog();
+    }, [user?.id]),
+  );
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={[styles.hero, { paddingTop: insets.top + 20 }]}>
-        <Text style={styles.greeting}>
-          Hello, {user?.user_metadata?.name || 'Guest'} 👋
-        </Text>
-        <Text style={styles.heroTitle}>What pizza{'\n'}are you craving?</Text>
-
-        <TouchableOpacity
-          style={styles.orderBtn}
-          onPress={() => navigation.navigate('Menu')}
-        >
-          <Text style={styles.orderBtnText}>Order Now</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Featured Pizzas</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Menu')}>
-            <Text style={styles.seeAll}>See all</Text>
-          </TouchableOpacity>
+    <View style={styles.root}>
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
+      >
+        <View style={styles.logoWrap}>
+          <JDLogo size="small" />
         </View>
 
-        {featured.map((pizza) => (
-          <PizzaCard
-            key={pizza.id}
-            pizza={pizza}
-            onPress={() => navigation.navigate('Menu')}
-            onAddToCart={(p: Pizza) => addItem(p)}
-          />
-        ))}
-      </View>
+        {/* Greeting + Points */}
+        <View style={styles.pointsBlock}>
+          <Text style={styles.greeting}>{t('home.greeting', { name: userName })}</Text>
+          {ptsLoading ? (
+            <ActivityIndicator color={Colors.gold} style={{ marginVertical: 12 }} />
+          ) : (
+            <>
+              <Text style={styles.pointsNum}>{Number.isFinite(balance) ? balance : 0}</Text>
+              <Text style={styles.pointsLabel}>{t('common.points')}</Text>
+            </>
+          )}
+        </View>
 
-      {items.length > 0 && (
-        <TouchableOpacity
-          style={styles.cartBanner}
-          onPress={() => navigation.navigate('Cart')}
-        >
-          <Text style={styles.cartBannerText}>
-            🛒 {items.length} item{items.length > 1 ? 's' : ''} in cart — View Cart
-          </Text>
-        </TouchableOpacity>
-      )}
-    </ScrollView>
+        {/* Exclusive Offers */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('home.exclusiveOffers')}</Text>
+        </View>
+
+        {catalogLoading ? (
+          <ActivityIndicator color={Colors.gold} style={{ marginVertical: 16 }} />
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.voucherList}
+            style={styles.voucherScroll}
+          >
+            {(catalog.length > 0 ? catalog : getFallbackCatalog(t)).map((raw) => {
+              const v = localizeCatalogItem(raw, t);
+              const isLight = getOfferCardTheme(v) === 'light';
+              return (
+              <View key={v.id} style={[styles.voucher, isLight && styles.voucherLight]}>
+                <Image
+                  source={v.imageUrl ? { uri: v.imageUrl } : getFallbackOfferImage(v)}
+                  style={[styles.voucherBg, isLight ? styles.voucherBgLight : styles.voucherBgDark]}
+                  resizeMode="cover"
+                />
+                <LinearGradient
+                  colors={
+                    isLight
+                      ? ['rgba(255,255,255,0.98)', 'rgba(255,255,255,0.88)', 'rgba(255,255,255,0)']
+                      : ['rgba(10,10,10,0.97)', 'rgba(10,10,10,0.75)', 'rgba(0,0,0,0)']
+                  }
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={styles.voucherGradient}
+                />
+                <View style={styles.voucherContent}>
+                  <Text style={[styles.voucherTag, isLight && styles.voucherTagLight]}>
+                    {v.restaurantName}
+                  </Text>
+                  <Text style={styles.voucherTitle} numberOfLines={3}>{v.title}</Text>
+                  <Text style={[styles.voucherValid, isLight && styles.voucherValidLight]} numberOfLines={1}>
+                    {v.description}
+                  </Text>
+                  <View style={styles.voucherBtn}>
+                    <Text style={styles.voucherBtnText}>{t('home.pointsCost', { count: v.pointsCost })}</Text>
+                  </View>
+                </View>
+              </View>
+            );
+            })}
+          </ScrollView>
+        )}
+
+        {/* Restaurants */}
+        <View style={[styles.section, { marginTop: 24 }]}>
+          <Text style={styles.sectionTitle}>{t('home.ourRestaurants')}</Text>
+          <View style={styles.restaurants}>
+            {RESTAURANTS.map((r) => (
+              <TouchableOpacity
+                key={r.id}
+                style={styles.restaurantCard}
+                onPress={() => navigation.navigate('Menu', { restaurantId: r.restaurantId })}
+                activeOpacity={0.9}
+              >
+                <View style={[styles.restaurantImgWrap, { backgroundColor: r.imageBg }]}>
+                  <Image
+                    source={r.image}
+                    style={[styles.restaurantImg, { transform: [{ scale: r.imageScale }] }]}
+                    resizeMode="cover"
+                  />
+                </View>
+                <View style={styles.restaurantFooter}>
+                  <Image
+                    source={require('../../assets/restaurant-logo.png')}
+                    style={styles.restaurantLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.restaurantName}>{t(`menu.restaurants.${r.restaurantId}`)}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={{ height: 24 }} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
+  root: { flex: 1, backgroundColor: Colors.background },
+  bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
+  scroll: { paddingHorizontal: 20 },
+  logoWrap: { alignItems: 'center', marginBottom: 4 },
+  pointsBlock: { alignItems: 'center', marginBottom: 24 },
+  greeting: { fontSize: 26, color: Colors.textPrimary, marginBottom: 4 },
+  pointsNum: { fontSize: 44, fontWeight: '800', color: Colors.gold, lineHeight: 56 },
+  pointsLabel: { fontSize: 18, color: Colors.gold, letterSpacing: 1 },
+  section: { marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
+  voucherScroll: { marginHorizontal: -20 },
+  voucherList: { paddingHorizontal: 20, gap: 16 },
+  voucher: {
+    width: CARD_W,
+    height: 170,
+    borderRadius: 13,
+    overflow: 'hidden',
+    backgroundColor: '#0a0a0a',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  hero: {
-    backgroundColor: '#E63946',
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+  voucherLight: {
+    backgroundColor: '#ffffff',
   },
-  greeting: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 8,
+  voucherBg: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
   },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    lineHeight: 38,
-    marginBottom: 24,
+  voucherBgDark: {
+    transform: [{ scale: 1.7 }, { translateX: 68 }],
   },
-  orderBtn: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
+  voucherBgLight: {
+    transform: [{ scale: 1.55 }, { translateX: 58 }],
+  },
+  voucherGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: '80%',
+  },
+  voucherContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: '62%',
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    justifyContent: 'center',
+  },
+  voucherTag: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 6, letterSpacing: 0.3 },
+  voucherTagLight: { color: 'rgba(60,60,60,0.75)' },
+  voucherTitle: { color: Colors.gold, fontSize: 16, fontWeight: '700', lineHeight: 22, marginBottom: 10 },
+  voucherValid: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginBottom: 12 },
+  voucherValidLight: { color: 'rgba(60,60,60,0.85)' },
+  voucherBtn: {
+    backgroundColor: Colors.gold,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
     alignSelf: 'flex-start',
   },
-  orderBtnText: {
-    color: '#E63946',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  section: {
-    paddingHorizontal: 16,
-    paddingTop: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  seeAll: {
-    fontSize: 14,
-    color: '#E63946',
-    fontWeight: '600',
-  },
-  cartBanner: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    backgroundColor: '#1D3557',
+  voucherBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  restaurants: { flexDirection: 'row', gap: 16, marginTop: 8 },
+  restaurantCard: {
+    flex: 1,
     borderRadius: 14,
-    padding: 16,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  restaurantImgWrap: {
+    width: '100%',
+    height: 130,
+    overflow: 'hidden',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  cartBannerText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
+  restaurantImg: {
+    width: '100%',
+    height: '100%',
   },
+  restaurantFooter: { backgroundColor: '#fff', paddingVertical: 10, alignItems: 'center', gap: 4 },
+  restaurantLogo: { width: 54, height: 54, borderRadius: 27, marginTop: -27, backgroundColor: '#fff' },
+  restaurantName: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center', marginTop: 4 },
 });

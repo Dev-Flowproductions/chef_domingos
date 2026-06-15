@@ -1,172 +1,198 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
-  TextInput,
-  ActivityIndicator,
+  Image,
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useMenu } from '../../hooks/useMenu';
-import { useCartStore } from '../../store/cartStore';
-import PizzaCard from '../../components/PizzaCard';
-import Header from '../../components/Header';
-import { Pizza } from '../../types';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import { Colors, Assets } from '../../lib/theme';
+import { getRestaurantMenu, type RestaurantId } from '../../lib/menuI18n';
+import type { HomeStackParamList } from '../../navigation/types';
+import JDLogo from '../../components/JDLogo';
+
+type MenuRoute = RouteProp<HomeStackParamList, 'Menu'>;
 
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();
-  const { data: pizzas, isLoading, error } = useMenu();
-  const { addItem } = useCartStore();
-  const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
+  const navigation = useNavigation();
+  const route = useRoute<MenuRoute>();
+  const { t } = useTranslation();
 
-  const categories = useMemo(() => {
-    const cats = new Set(pizzas?.map((p) => p.category).filter(Boolean) ?? []);
-    return ['All', ...Array.from(cats)];
-  }, [pizzas]);
+  const restaurantId: RestaurantId = route.params?.restaurantId ?? 'portugueseLab';
+  const menuConfig = getRestaurantMenu(restaurantId);
 
-  const filtered = useMemo(() => {
-    return (pizzas ?? []).filter((p) => {
-      const matchSearch =
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.description.toLowerCase().includes(search.toLowerCase());
-      const matchCat = activeCategory === 'All' || p.category === activeCategory;
-      return matchSearch && matchCat;
-    });
-  }, [pizzas, search, activeCategory]);
+  const [activeCategory, setActiveCategory] = useState(menuConfig.defaultCategory);
+
+  useEffect(() => {
+    setActiveCategory(menuConfig.defaultCategory);
+  }, [restaurantId, menuConfig.defaultCategory]);
+
+  const itemIds = menuConfig.items[activeCategory] ?? [];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Header title="Our Menu" />
+    <View style={styles.root}>
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
+      >
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={styles.backText}>←</Text>
+        </TouchableOpacity>
 
-      <View style={styles.searchWrapper}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search pizzas..."
-          placeholderTextColor="#9CA3AF"
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
+        <View style={styles.logoWrap}>
+          <JDLogo size="small" />
+        </View>
 
-      {categories.length > 1 && (
+        <View style={styles.titleBlock}>
+          <Text style={styles.subtitle}>{t('menu.title')}</Text>
+          <Text style={styles.title}>{t(`menu.restaurants.${restaurantId}`)}</Text>
+        </View>
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categories}
+          contentContainerStyle={styles.catList}
+          style={styles.catScroll}
         >
-          {categories.map((cat) => (
+          {menuConfig.categories.map((catId) => (
             <TouchableOpacity
-              key={cat}
-              style={[styles.catChip, activeCategory === cat && styles.catChipActive]}
-              onPress={() => setActiveCategory(cat)}
+              key={catId}
+              onPress={() => setActiveCategory(catId)}
+              style={styles.catBtn}
             >
-              <Text style={[styles.catText, activeCategory === cat && styles.catTextActive]}>
-                {cat}
+              <Text style={[styles.catText, activeCategory === catId && styles.catTextActive]}>
+                {t(`menu.${restaurantId}.categories.${catId}`)}
               </Text>
+              {activeCategory === catId && <View style={styles.catUnderline} />}
             </TouchableOpacity>
           ))}
         </ScrollView>
-      )}
 
-      {isLoading && (
-        <View style={styles.center}>
-          <ActivityIndicator color="#E63946" size="large" />
-        </View>
-      )}
+        <Text style={styles.sectionHeading}>
+          {t(`menu.${restaurantId}.categories.${activeCategory}`)}
+        </Text>
 
-      {error && (
-        <View style={styles.center}>
-          <Text style={styles.errorText}>Failed to load menu. Pull to refresh.</Text>
-        </View>
-      )}
-
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <PizzaCard
-            pizza={item}
-            onPress={() => {}}
-            onAddToCart={(p: Pizza) => addItem(p)}
-          />
-        )}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.center}>
-              <Text style={styles.emptyText}>No pizzas found</Text>
+        <View style={styles.menuList}>
+          {itemIds.map((itemId, idx) => (
+            <View key={itemId}>
+              <View style={styles.menuRow}>
+                <Text style={styles.menuName}>
+                  {t(`menu.${restaurantId}.items.${itemId}.name`)}
+                </Text>
+                <View style={styles.menuDots} />
+                <Text style={styles.menuPrice}>
+                  {t(`menu.${restaurantId}.items.${itemId}.price`)}
+                </Text>
+              </View>
+              {idx < itemIds.length - 1 && <View style={styles.divider} />}
             </View>
-          ) : null
-        }
-      />
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.background,
   },
-  searchWrapper: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  bg: {
+    position: 'absolute',
+    width: 874,
+    height: 874,
+    left: -274,
+    top: 0,
+    opacity: 0.4,
   },
-  searchInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 16,
-    height: 46,
-    fontSize: 15,
-    color: '#111827',
+  scroll: {
+    paddingHorizontal: 20,
   },
-  categories: {
-    paddingHorizontal: 16,
-    gap: 8,
+  backBtn: { alignSelf: 'flex-start', marginBottom: 4 },
+  backText: { fontSize: 24, color: Colors.gold },
+  logoWrap: {
+    alignItems: 'center',
     marginBottom: 8,
   },
-  catChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    marginRight: 8,
+  titleBlock: {
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  catChipActive: {
-    backgroundColor: '#E63946',
+  subtitle: {
+    fontSize: 26,
+    color: Colors.textPrimary,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '400',
+    color: Colors.gold,
+  },
+  catScroll: {
+    marginHorizontal: -20,
+    marginBottom: 8,
+  },
+  catList: {
+    paddingHorizontal: 20,
+    gap: 24,
+  },
+  catBtn: {
+    paddingBottom: 6,
+    alignItems: 'center',
   },
   catText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontSize: 18,
+    color: Colors.textPrimary,
   },
   catTextActive: {
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
+    fontWeight: '400',
   },
-  list: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 24,
+  catUnderline: {
+    height: 2,
+    width: '100%',
+    backgroundColor: Colors.gold,
+    marginTop: 4,
   },
-  center: {
-    flex: 1,
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.gold,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  menuList: {
+    gap: 0,
+  },
+  menuRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 12,
   },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 15,
+  menuName: {
+    fontSize: 18,
+    color: Colors.textPrimary,
+    flex: 1,
   },
-  emptyText: {
-    color: '#9CA3AF',
-    fontSize: 15,
+  menuDots: {
+    flex: 0.5,
+    height: 1,
+    backgroundColor: '#C8C8C8',
+    marginHorizontal: 8,
+  },
+  menuPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E8E0D5',
   },
 });
