@@ -172,7 +172,7 @@ For each failed step, capture:
 
 | Feature | Status | Impact at restaurant |
 |---------|--------|----------------------|
-| **Camera barcode scanner** in Staff mode | ❌ Manual code entry only | Staff types voucher code from customer QR |
+| **Camera barcode scanner** in Staff mode | ✅ Scan + manual tabs (`expo-camera`) |
 | **WinRest adapter** in our backend | ❌ Stub only | Earn flow depends 100% on LKM/POS connector |
 | Receipt scan **inside customer app** | ❌ Not implemented | By design — POS scans customer card |
 | Phone OTP / Google sign-in | ❌ Not in current flows | Email only |
@@ -206,7 +206,7 @@ For each failed step, capture:
 |----------|------|
 | P0 | **Modo Staff**: long-press logo on Conta → PIN → validate voucher (`validateStaff` edge action) | ✅ Done |
 | P0 | **My vouchers** screen: list active vouchers + QR per voucher | ✅ Done |
-| P0 | **Production build**: run `npx eas-cli init` then `eas build --profile preview` | ⚠️ Config added; run EAS |
+| P0 | **Production build**: run `npx eas-cli login` then `eas init` then `npm run build:preview` | ⚠️ EAS not logged in on this machine |
 | P0 | Update `app.json`: name, slug, bundle ids | ✅ Done |
 | P1 | Remove dependency on storing password in SecureStore once LKM offers token-only relink |
 | P1 | Show user-visible error when points/transactions fail (not silent 0) |
