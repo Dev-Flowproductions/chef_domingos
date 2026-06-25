@@ -16,11 +16,6 @@ let _configLoaded = false;
 async function loadLkmConfig(): Promise<void> {
   if (_configLoaded) return;
 
-  if (LKM_BASE_URL && LKM_TOKEN_APP && LKM_HMAC_SECRET && LKM_STORE_ID) {
-    _configLoaded = true;
-    return;
-  }
-
   const db = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -37,6 +32,14 @@ async function loadLkmConfig(): Promise<void> {
       if (row.key === 'LKM_GRUPO_DESCONTO') LKM_GRUPO_DESCONTO = Number(row.value);
     }
   }
+
+  if (!LKM_BASE_URL) LKM_BASE_URL = Deno.env.get('LKM_BASE_URL')?.replace(/\/$/, '') ?? '';
+  if (!LKM_TOKEN_APP) LKM_TOKEN_APP = Deno.env.get('LKM_TOKEN_APP') ?? '';
+  if (!LKM_HMAC_SECRET) {
+    LKM_HMAC_SECRET = Deno.env.get('LKM_HMAC_SECRET') ?? Deno.env.get('LKM_PARTNER_KEY') ?? '';
+  }
+  if (!LKM_STORE_ID) LKM_STORE_ID = Deno.env.get('LKM_STORE_EXTERNAL_ID') ?? '';
+  if (!LKM_GRUPO_DESCONTO) LKM_GRUPO_DESCONTO = Number(Deno.env.get('LKM_GRUPO_DESCONTO') ?? '0');
 
   _configLoaded = true;
 }
@@ -101,6 +104,26 @@ async function buildSignature(body?: string): Promise<string> {
 let _appToken: string | null = null;
 let _appTokenExpiry: number = 0;
 
+function parseTokenResponse(text: string): { token: string; expiresAt: Date } {
+  try {
+    const data = JSON.parse(text) as {
+      Token?: string;
+      token?: string;
+      Expiration?: string;
+      expiration?: string;
+    };
+    const token = (data.Token ?? data.token ?? '').trim();
+    const expStr = data.Expiration ?? data.expiration ?? '';
+    const expiresAt = expStr ? new Date(expStr) : new Date(Date.now() + 55 * 60 * 1000);
+    return { token, expiresAt };
+  } catch {
+    return {
+      token: text.replace(/"/g, '').trim(),
+      expiresAt: new Date(Date.now() + 55 * 60 * 1000),
+    };
+  }
+}
+
 async function getAppToken(): Promise<string> {
   await loadLkmConfig();
   assertLkmConfig();
@@ -139,10 +162,9 @@ async function getAppToken(): Promise<string> {
     throw new Error(`LKM getAppToken failed: ${res.status} ${await res.text()}`);
   }
 
-  const token = (await res.text()).replace(/"/g, '');
-  const expiresAt = new Date(now + 55 * 60 * 1000); // treat as ~55 min TTL
+  const { token, expiresAt } = parseTokenResponse(await res.text());
+  if (!token) throw new Error('LKM applicationtoken returned empty token');
 
-  // Persist to DB cache
   await db.from('lkm_token_cache').upsert({
     key: 'app_token',
     token,
@@ -176,7 +198,9 @@ export async function getClientToken(accessToken: string): Promise<string> {
     throw new Error(`LKM getClientToken failed: ${res.status} ${await res.text()}`);
   }
 
-  return (await res.text()).replace(/"/g, '');
+  const { token } = parseTokenResponse(await res.text());
+  if (!token) throw new Error('LKM clienttoken returned empty token');
+  return token;
 }
 
 // ── Core fetch helper ─────────────────────────────────────────────────────────
@@ -222,6 +246,7 @@ export async function lkmFetch<T = unknown>(
 
   if (!res.ok) {
     const text = await res.text();
+    console.error(`[lkm-client] ${method} ${path} => ${res.status}:`, text);
     throw new LkmApiError(res.status, text);
   }
 

@@ -163,7 +163,7 @@ async function claimVoucher(
 // ── Staff: validate voucher ───────────────────────────────────────────────────
 
 async function validateVoucher(
-  clientToken: string,
+  clientToken: string | undefined,
   codVoucher: string,
   codLoja: string,
 ): Promise<{ status: 'valid' | 'already_used' | 'expired' | 'not_active'; title: string }> {
@@ -224,12 +224,11 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { user } = await getSupabaseUser(req);
-    const { accessToken } = await getLkmCard(user.id);
-    const clientToken = await getClientToken(accessToken);
     const { storeId: LKM_STORE_ID } = await getLkmConfig();
 
-    // GET requests
     if (req.method === 'GET') {
+      const { accessToken } = await getLkmCard(user.id);
+      const clientToken = await getClientToken(accessToken);
       const url    = new URL(req.url);
       const action = url.searchParams.get('action') ?? 'catalog';
 
@@ -246,10 +245,18 @@ Deno.serve(async (req: Request) => {
       return errorResponse('Unknown action. Use catalog or list.');
     }
 
-    // POST requests
     if (req.method === 'POST') {
       const body: Record<string, unknown> = await req.json();
       const { action, ...rest } = body;
+
+      if (action === 'validateStaff') {
+        const codLoja = String(rest.codLoja ?? LKM_STORE_ID);
+        const result = await validateVoucher(undefined, String(rest.codVoucher), codLoja);
+        return jsonResponse(result, { headers: corsHeaders });
+      }
+
+      const { accessToken } = await getLkmCard(user.id);
+      const clientToken = await getClientToken(accessToken);
 
       if (action === 'claim') {
         const voucher = await claimVoucher(user.id, clientToken, String(rest.codCatalog));
@@ -267,7 +274,7 @@ Deno.serve(async (req: Request) => {
         return jsonResponse(result, { headers: corsHeaders });
       }
 
-      return errorResponse('Unknown action. Use claim, validate, or activate.');
+      return errorResponse('Unknown action. Use claim, validate, validateStaff, or activate.');
     }
 
     return errorResponse('Method not allowed', 405);

@@ -12,7 +12,10 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Assets } from '../../lib/theme';
 import { usePointsStore } from '../../store/pointsStore';
 import { useAuthStore } from '../../store/authStore';
@@ -23,6 +26,9 @@ import {
   localizeCatalogItem,
   milestoneLabelForPts,
 } from '../../lib/offerI18n';
+import type { RewardsStackParamList } from '../../navigation/types';
+
+type RewardsNav = NativeStackNavigationProp<RewardsStackParamList, 'RewardsMain'>;
 
 const POINTS_TIERS = [
   { pts: 300, icon: require('../../assets/icon-cafe-rn.png'), labelKey: 'rewards.tierCoffee' },
@@ -32,10 +38,10 @@ const POINTS_TIERS = [
 
 const MAX_PTS     = 900;
 const CIRCLE_SIZE = 39;
-const BAR_INSET   = CIRCLE_SIZE / 2;
 const BAR_H       = 14;
 const BAR_TOP     = (CIRCLE_SIZE - BAR_H) / 2;
 const TIER_LABEL_WIDTH = 52;
+const TIER_HALF   = TIER_LABEL_WIDTH / 2;
 const CONTAINER_H = CIRCLE_SIZE + 20;
 
 const FALLBACK_IMAGES = [
@@ -46,16 +52,17 @@ const FALLBACK_IMAGES = [
 export default function RecompensasScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const navigation = useNavigation<RewardsNav>();
 
   const { balance, nextMilestone, ptsToNext, loading: ptsLoading, fetch: fetchPoints } = usePointsStore();
-  const { catalog, catalogLoading, fetchCatalog, claim, claiming } = useVouchersStore();
+  const { catalog, catalogLoading, fetchCatalog, claim, claiming, myVouchers, fetchMyVouchers } = useVouchersStore();
   const { user } = useAuthStore();
 
   const [barWidth, setBarWidth] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
-  const trackWidth = Math.max(0, barWidth - CIRCLE_SIZE);
-  const fillWidth = trackWidth * Math.min(balance / MAX_PTS, 1);
+  const trackSpan = Math.max(0, barWidth - TIER_LABEL_WIDTH);
+  const fillWidth = trackSpan * Math.min(balance / MAX_PTS, 1);
 
   const onBarLayout = (e: LayoutChangeEvent) => {
     setBarWidth(e.nativeEvent.layout.width);
@@ -65,11 +72,12 @@ export default function RecompensasScreen() {
     if (!user?.id) return;
     fetchPoints();
     fetchCatalog();
+    fetchMyVouchers();
   }, [user?.id]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchPoints(), fetchCatalog()]);
+    await Promise.all([fetchPoints(), fetchCatalog(), fetchMyVouchers()]);
     setRefreshing(false);
   };
 
@@ -92,7 +100,10 @@ export default function RecompensasScreen() {
             try {
               await claim(catalogId);
               await fetchPoints();
-              Alert.alert(t('common.success'), t('rewards.claimSuccess', { title }));
+              Alert.alert(t('common.success'), t('rewards.claimSuccess', { title }), [
+                { text: t('rewards.viewVouchers'), onPress: () => navigation.navigate('MyVouchers') },
+                { text: t('common.ok'), style: 'cancel' },
+              ]);
             } catch (err) {
               Alert.alert(t('common.error'), (err as Error).message);
             }
@@ -127,6 +138,19 @@ export default function RecompensasScreen() {
 
         <View style={styles.titleBlock}>
           <Text style={styles.label}>{t('rewards.title')}</Text>
+          <TouchableOpacity
+            style={styles.myVouchersBtn}
+            onPress={() => navigation.navigate('MyVouchers')}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="ticket-outline" size={18} color={Colors.gold} />
+            <Text style={styles.myVouchersText}>
+              {t('rewards.myVouchers')}
+              {myVouchers.filter((v) => v.state === 'active' || v.state === 'pending').length > 0
+                ? ` (${myVouchers.filter((v) => v.state === 'active' || v.state === 'pending').length})`
+                : ''}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Ofertas Grátis ── */}
@@ -144,8 +168,8 @@ export default function RecompensasScreen() {
 
                 {barWidth > 0 && POINTS_TIERS.map((tier) => {
                   const isDone = balance >= tier.pts;
-                  const centerX = BAR_INSET + trackWidth * (tier.pts / MAX_PTS);
-                  const left = centerX - TIER_LABEL_WIDTH / 2;
+                  const centerX = TIER_HALF + trackSpan * (tier.pts / MAX_PTS);
+                  const left = centerX - TIER_HALF;
                   return (
                     <View key={tier.pts} style={[styles.tierWrapper, { left }]}>
                       <View style={[styles.tierCircle, isDone && styles.tierCircleDone]}>
@@ -209,6 +233,18 @@ const styles = StyleSheet.create({
   logoWrap: { alignItems: 'center', marginBottom: 4 },
   titleBlock: { alignItems: 'center', marginBottom: 16 },
   label: { fontSize: 26, color: Colors.textPrimary },
+  myVouchersBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.gold,
+  },
+  myVouchersText: { fontSize: 14, color: Colors.gold, fontWeight: '600' },
   section: { marginBottom: 28 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
   sectionSubtitle: { fontSize: 11, color: '#757575', marginBottom: 14 },
@@ -216,8 +252,8 @@ const styles = StyleSheet.create({
   progressTrack: {
     position: 'absolute',
     top: BAR_TOP,
-    left: BAR_INSET,
-    right: BAR_INSET,
+    left: TIER_HALF,
+    right: TIER_HALF,
     height: BAR_H,
     borderRadius: 30,
     backgroundColor: 'rgba(191,153,78,0.5)',
@@ -225,7 +261,7 @@ const styles = StyleSheet.create({
   progressFill: {
     position: 'absolute',
     top: BAR_TOP,
-    left: BAR_INSET,
+    left: TIER_HALF,
     height: BAR_H,
     borderRadius: 30,
     backgroundColor: Colors.gold,

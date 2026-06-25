@@ -8,7 +8,9 @@
     "pointsLower": "Pontos",
     "success": "Sucesso!",
     "error": "Erro",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "ok": "OK",
+    "pointsLoadError": "Não foi possível carregar os pontos. Puxe para atualizar."
   },
   "tabs": {
     "home": "Início",
@@ -182,6 +184,17 @@
     "claimConfirm": "Resgatar \"{{title}}\" por {{cost}} pontos?",
     "claim": "Resgatar",
     "claimSuccess": "\"{{title}}\" adicionado aos seus vouchers.",
+    "viewVouchers": "Ver vouchers",
+    "myVouchers": "Os meus vouchers",
+    "myVouchersHint": "Apresente este QR no balcão para usar a sua recompensa.",
+    "myVouchersEmpty": "Ainda não tem vouchers. Resgate uma oferta no catálogo.",
+    "backToCatalog": "Voltar ao catálogo",
+    "pastVouchers": "Utilizados / expirados",
+    "expires": "Válido até {{date}}",
+    "voucherStateActive": "Ativo",
+    "voucherStatePending": "Pendente",
+    "voucherStateUsed": "Utilizado",
+    "voucherStateExpired": "Expirado",
     "pointsCost": "{{count}} Pontos",
     "ptsShort": "{{count}} pts"
   },
@@ -202,6 +215,25 @@
     "langEn": "English",
     "saved": "Perfil atualizado com sucesso.",
     "saveError": "Não foi possível guardar o perfil."
+  },
+  "staff": {
+    "title": "Modo Staff",
+    "pinPrompt": "Introduza o PIN de 4 dígitos",
+    "wrongPin": "PIN incorreto",
+    "wrongPinHint": "Tente novamente ou contacte o responsável.",
+    "validateTitle": "Validar voucher",
+    "validateHint": "Leia ou introduza o código do voucher apresentado pelo cliente. Aplique o desconto manualmente no POS se válido.",
+    "voucherPlaceholder": "Código do voucher",
+    "validateBtn": "Validar",
+    "resultValid": "Voucher válido. Aplique o desconto no POS e entregue a oferta.",
+    "resultUsed": "Este voucher já foi utilizado.",
+    "resultExpired": "Este voucher expirou.",
+    "resultNotActive": "Este voucher ainda não está ativo.",
+    "scanAnother": "Validar outro",
+    "modeScan": "Scanner",
+    "modeManual": "Manual",
+    "cameraPermission": "É necessária a câmara para ler o QR do voucher.",
+    "cameraAllow": "Permitir câmara"
   },
   "notifications": {
     "title": "Notificações",

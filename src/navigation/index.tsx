@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import { USE_MOCK } from '../lib/config';
 import { Colors } from '../lib/theme';
-import type { HomeStackParamList, ProfileStackParamList } from './types';
+import type { HomeStackParamList, ProfileStackParamList, RewardsStackParamList } from './types';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 const TAB_ICONS: Record<string, any> = {
@@ -26,15 +26,18 @@ import MenuScreen from '../screens/menu/MenuScreen';
 import WalletScreen from '../screens/wallet/WalletScreen';
 import GanharScreen from '../screens/ganhar/GanharScreen';
 import RecompensasScreen from '../screens/recompensas/RecompensasScreen';
+import MyVouchersScreen from '../screens/recompensas/MyVouchersScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import NotificationsScreen from '../screens/profile/NotificationsScreen';
 import HelpScreen from '../screens/profile/HelpScreen';
 import LegalScreen from '../screens/profile/LegalScreen';
+import StaffPinScreen from '../screens/staff/StaffPinScreen';
+import StaffValidateScreen from '../screens/staff/StaffValidateScreen';
 import SplashScreen from '../screens/splash/SplashScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 
-export type { HomeStackParamList, ProfileStackParamList } from './types';
+export type { HomeStackParamList, ProfileStackParamList, RewardsStackParamList } from './types';
 
 export type AuthStackParamList = {
   Login:      undefined;
@@ -61,6 +64,7 @@ const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
+const RewardsStack = createNativeStackNavigator<RewardsStackParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 const TAB_LABEL_KEYS: Record<string, string> = {
@@ -169,7 +173,18 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="Help"          component={HelpScreen} />
       <ProfileStack.Screen name="Terms"         component={LegalScreen} />
       <ProfileStack.Screen name="Privacy"       component={LegalScreen} />
+      <ProfileStack.Screen name="StaffPin"      component={StaffPinScreen} />
+      <ProfileStack.Screen name="StaffValidate" component={StaffValidateScreen} />
     </ProfileStack.Navigator>
+  );
+}
+
+function RewardsStackNavigator() {
+  return (
+    <RewardsStack.Navigator screenOptions={{ headerShown: false }}>
+      <RewardsStack.Screen name="RewardsMain" component={RecompensasScreen} />
+      <RewardsStack.Screen name="MyVouchers"  component={MyVouchersScreen} />
+    </RewardsStack.Navigator>
   );
 }
 
@@ -182,7 +197,7 @@ function MainNavigator() {
       <MainTab.Screen name="Home"        component={HomeStackNavigator} />
       <MainTab.Screen name="Carteira"    component={WalletScreen} />
       <MainTab.Screen name="Ganhar"      component={GanharScreen} />
-      <MainTab.Screen name="Recompensas" component={RecompensasScreen} />
+      <MainTab.Screen name="Recompensas" component={RewardsStackNavigator} />
       <MainTab.Screen name="Conta"       component={ProfileStackNavigator} />
     </MainTab.Navigator>
   );

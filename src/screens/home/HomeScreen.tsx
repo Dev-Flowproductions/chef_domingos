@@ -66,7 +66,7 @@ export default function HomeScreen() {
   const metaName = (user as { user_metadata?: { name?: string } })?.user_metadata?.name;
   const userName = profile?.name || metaName || '—';
 
-  const { balance, loading: ptsLoading, fetch: fetchPoints } = usePointsStore();
+  const { balance, loading: ptsLoading, error: ptsError, fetch: fetchPoints } = usePointsStore();
   const { catalog, catalogLoading, fetchCatalog } = useVouchersStore();
 
   useEffect(() => {
@@ -101,6 +101,9 @@ export default function HomeScreen() {
             <>
               <Text style={styles.pointsNum}>{Number.isFinite(balance) ? balance : 0}</Text>
               <Text style={styles.pointsLabel}>{t('common.points')}</Text>
+              {ptsError ? (
+                <Text style={styles.pointsError}>{t('common.pointsLoadError')}</Text>
+              ) : null}
             </>
           )}
         </View>
@@ -203,6 +206,7 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 26, color: Colors.textPrimary, marginBottom: 4 },
   pointsNum: { fontSize: 44, fontWeight: '800', color: Colors.gold, lineHeight: 56 },
   pointsLabel: { fontSize: 18, color: Colors.gold, letterSpacing: 1 },
+  pointsError: { fontSize: 12, color: '#b45309', marginTop: 8, textAlign: 'center', paddingHorizontal: 16 },
   section: { marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
   voucherScroll: { marginHorizontal: -20 },

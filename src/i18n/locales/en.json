@@ -8,7 +8,9 @@
     "pointsLower": "Points",
     "success": "Success!",
     "error": "Error",
-    "retry": "Try again"
+    "retry": "Try again",
+    "ok": "OK",
+    "pointsLoadError": "Could not load points. Pull to refresh."
   },
   "tabs": {
     "home": "Home",
@@ -182,6 +184,17 @@
     "claimConfirm": "Redeem \"{{title}}\" for {{cost}} points?",
     "claim": "Redeem",
     "claimSuccess": "\"{{title}}\" added to your vouchers.",
+    "viewVouchers": "View vouchers",
+    "myVouchers": "My vouchers",
+    "myVouchersHint": "Show this QR at the counter to redeem your reward.",
+    "myVouchersEmpty": "No vouchers yet. Redeem an offer from the catalog.",
+    "backToCatalog": "Back to catalog",
+    "pastVouchers": "Used / expired",
+    "expires": "Valid until {{date}}",
+    "voucherStateActive": "Active",
+    "voucherStatePending": "Pending",
+    "voucherStateUsed": "Used",
+    "voucherStateExpired": "Expired",
     "pointsCost": "{{count}} Points",
     "ptsShort": "{{count}} pts"
   },
@@ -202,6 +215,25 @@
     "langEn": "English",
     "saved": "Profile updated successfully.",
     "saveError": "Could not save profile."
+  },
+  "staff": {
+    "title": "Staff mode",
+    "pinPrompt": "Enter the 4-digit PIN",
+    "wrongPin": "Wrong PIN",
+    "wrongPinHint": "Try again or contact your manager.",
+    "validateTitle": "Validate voucher",
+    "validateHint": "Scan or enter the voucher code shown by the customer. Apply the discount manually on the POS if valid.",
+    "voucherPlaceholder": "Voucher code",
+    "validateBtn": "Validate",
+    "resultValid": "Valid voucher. Apply the discount on the POS and serve the offer.",
+    "resultUsed": "This voucher has already been used.",
+    "resultExpired": "This voucher has expired.",
+    "resultNotActive": "This voucher is not active yet.",
+    "scanAnother": "Validate another",
+    "modeScan": "Scanner",
+    "modeManual": "Manual",
+    "cameraPermission": "Camera access is required to scan the voucher QR code.",
+    "cameraAllow": "Allow camera"
   },
   "notifications": {
     "title": "Notifications",
