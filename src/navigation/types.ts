@@ -12,4 +12,11 @@ export type ProfileStackParamList = {
   Help: undefined;
   Terms: undefined;
   Privacy: undefined;
+  StaffPin: undefined;
+  StaffValidate: undefined;
+};
+
+export type RewardsStackParamList = {
+  RewardsMain: undefined;
+  MyVouchers: undefined;
 };

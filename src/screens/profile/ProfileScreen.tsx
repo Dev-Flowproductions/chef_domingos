@@ -65,7 +65,10 @@ export default function ProfileScreen() {
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.logoWrap}>
-          <JDLogo size="small" />
+          <JDLogo
+            size="small"
+            onLongPress={() => navigation.navigate('StaffPin')}
+          />
         </View>
 
         <Text style={styles.pageTitle}>{t('profile.title')}</Text>

@@ -47,7 +47,7 @@ export default function WalletScreen() {
   const { locale } = useLocaleStore();
   const dateTag = localeTag(locale);
 
-  const { balance, loading: ptsLoading, fetch: fetchPoints } = usePointsStore();
+  const { balance, loading: ptsLoading, error: ptsError, fetch: fetchPoints } = usePointsStore();
   const { user } = useAuthStore();
 
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -106,6 +106,9 @@ export default function WalletScreen() {
             <>
               <Text style={styles.pts}>{Number.isFinite(balance) ? balance : 0}</Text>
               <Text style={styles.ptsLabel}>PONTOS</Text>
+              {ptsError ? (
+                <Text style={styles.pointsError}>{t('common.pointsLoadError')}</Text>
+              ) : null}
             </>
           )}
         </View>
@@ -177,6 +180,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 26, color: Colors.textPrimary },
   pts: { fontSize: 44, fontWeight: '800', color: Colors.gold, lineHeight: 56 },
   ptsLabel: { fontSize: 18, color: Colors.gold, letterSpacing: 1 },
+  pointsError: { fontSize: 12, color: '#b45309', marginTop: 8, textAlign: 'center' },
   histTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 12 },
   filterWrap: { marginBottom: 16 },
   filterBar: { flexDirection: 'row', borderWidth: 2, borderColor: Colors.gold, borderRadius: 30, overflow: 'hidden' },

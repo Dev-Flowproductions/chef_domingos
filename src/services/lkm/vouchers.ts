@@ -72,6 +72,16 @@ export async function activateVoucher(codVale: string): Promise<{ activated: boo
   });
 }
 
+export async function validateStaffVoucher(
+  codVoucher: string,
+  codLoja?: string,
+): Promise<VoucherValidationResult> {
+  return lkmCall<VoucherValidationResult>('lkm-vouchers', {
+    method: 'POST',
+    body: { action: 'validateStaff', codVoucher, codLoja },
+  });
+}
+
 export async function registerEarnScan(
   transactionId: string,
   storeId?: string,
