@@ -30,7 +30,13 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Chef Domingos to access the camera to scan customer voucher QR codes."
+        }
+      ]
     ],
     "extra": {
       "eas": {

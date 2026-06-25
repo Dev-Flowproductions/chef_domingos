@@ -229,7 +229,11 @@
     "resultUsed": "This voucher has already been used.",
     "resultExpired": "This voucher has expired.",
     "resultNotActive": "This voucher is not active yet.",
-    "scanAnother": "Validate another"
+    "scanAnother": "Validate another",
+    "modeScan": "Scanner",
+    "modeManual": "Manual",
+    "cameraPermission": "Camera access is required to scan the voucher QR code.",
+    "cameraAllow": "Allow camera"
   },
   "notifications": {
     "title": "Notifications",
