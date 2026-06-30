@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
+import { useKeepAwake } from 'expo-keep-awake';
 import LoyaltyQrImage from '../../components/LoyaltyQrImage';
 import { Colors, Assets } from '../../lib/theme';
 import { buildLoyaltyQrPayload } from '../../lib/loyaltyQr';
@@ -20,6 +21,7 @@ import { useAuthStore } from '../../store/authStore';
 import JDLogo from '../../components/JDLogo';
 
 export default function GanharScreen() {
+  useKeepAwake();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { user } = useAuthStore();

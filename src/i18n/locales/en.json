@@ -64,7 +64,7 @@
     "slide1Title": "One account,\nall the flavours.",
     "slide1Body": "Earn points at our restaurants and enjoy your meal.",
     "slide2Title": "Earning is simple.",
-    "slide2Body": "After your meal, scan the QR code on your receipt and watch your balance grow.",
+    "slide2Body": "After your meal, open the Earn section and show your QR code at the counter. Points are added automatically.",
     "slide3Title": "Rewards\nand Offers",
     "slide3Body": "Redeem points for meals, desserts or exclusive offers for your next visit.",
     "next": "Next",
@@ -167,7 +167,7 @@
     "copiedTitle": "Copied",
     "copiedBody": "The code was copied to your clipboard.",
     "cardNotReady": "Your loyalty card is not active yet.",
-    "cardNotReadyHint": "This is not the default state after sign-in. Sign out and sign in again with email and password (that registers your LKM card), or ask your admin to set the LKM secrets on Supabase."
+    "cardNotReadyHint": "Sign out and sign back in to try again. If the issue persists, please contact support."
   },
   "rewards": {
     "title": "Rewards",
