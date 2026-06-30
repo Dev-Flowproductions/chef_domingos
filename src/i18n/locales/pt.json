@@ -64,7 +64,7 @@
     "slide1Title": "Uma conta, todos\nos sabores.",
     "slide1Body": "Acumule pontos nos nossos restaurantes e saboreie a sua refeição.",
     "slide2Title": "Ganhar é simples.",
-    "slide2Body": "Depois de saborear a sua refeição, faça scan do QR Code no talão e veja o seu saldo crescer.",
+    "slide2Body": "Depois de saborear a sua refeição, abra a secção Ganhar e mostre o seu código QR ao balcão. Os pontos são adicionados automaticamente.",
     "slide3Title": "Recompensas\ne Ofertas",
     "slide3Body": "Troque pontos por refeições, sobremesas ou ofertas exclusivas para utilizar na sua próxima visita.",
     "next": "Próximo",
@@ -167,7 +167,7 @@
     "copiedTitle": "Copiado",
     "copiedBody": "O código foi copiado para a área de transferência.",
     "cardNotReady": "O seu cartão de fidelização ainda não está ativo.",
-    "cardNotReadyHint": "Isto não é normal depois de entrar na conta. Saia, volte a entrar com email e palavra-passe (isto regista o cartão na LKM), ou peça ao administrador para configurar as chaves LKM no Supabase."
+    "cardNotReadyHint": "Saia e volte a entrar na conta para tentar novamente. Se o problema persistir, contacte o suporte."
   },
   "rewards": {
     "title": "Recompensas",

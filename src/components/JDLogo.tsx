@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface JDLogoProps {
   size?: 'small' | 'large';
@@ -26,8 +27,12 @@ export default function JDLogo({ size = 'small', onLongPress }: JDLogoProps) {
   );
 
   if (onLongPress) {
+    const handleLongPress = () => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onLongPress();
+    };
     return (
-      <Pressable onLongPress={onLongPress} delayLongPress={3000} style={styles.container}>
+      <Pressable onLongPress={handleLongPress} delayLongPress={3000} style={styles.container}>
         {content}
       </Pressable>
     );

@@ -10,6 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { usePointsStore } from '../../store/pointsStore';
@@ -72,6 +73,14 @@ export default function WalletScreen() {
     fetchPoints();
     loadTransactions(filter);
   }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) return;
+      fetchPoints();
+      loadTransactions(filter);
+    }, [user?.id, filter]),
+  );
 
   const onFilterChange = (f: FilterKey) => {
     setFilter(f);
