@@ -100,10 +100,26 @@ async function registerEmail(userId: string, body: Record<string, unknown>) {
     { method: 'POST', body: payload },
   );
 
-  console.log('[lkm-account] registerEmail raw response keys:', Object.keys(result));
   console.log('[lkm-account] registerEmail raw response:', JSON.stringify(result));
-  const cardCode    = (result.CodCartao ?? result.codCard ?? result.CardCode ?? result.cardCode ?? '') as string;
-  const accessToken = (result.AccessToken ?? result.accessToken ?? '') as string;
+
+  // Registerv2 returns an array of {Key, Value} pairs: [{Key:"LKA_CLIENTES",Value:{COD_CARTAO,...}}]
+  // Fall back to direct object fields for other LKM environments.
+  let cardCode    = '';
+  let accessToken = '';
+
+  if (Array.isArray(result)) {
+    const lkaEntry = (result as Array<Record<string, unknown>>).find(
+      (r) => r.Key === 'LKA_CLIENTES',
+    );
+    const val = lkaEntry?.Value as Record<string, unknown> | undefined;
+    cardCode    = String(val?.COD_CARTAO ?? val?.CodCartao ?? val?.codCartao ?? '');
+    accessToken = String(val?.AccessToken ?? val?.accessToken ?? '');
+  } else {
+    cardCode    = String(result.COD_CARTAO ?? result.CodCartao ?? result.codCard ?? result.CardCode ?? result.cardCode ?? '');
+    accessToken = String(result.AccessToken ?? result.accessToken ?? '');
+  }
+
+  if (!cardCode) throw new Error(`Registerv2 returned no card code. Response: ${JSON.stringify(result)}`);
 
   const shortCode = await saveCardToUser(userId, cardCode, accessToken);
   return { cardCode, shortCode };
@@ -116,10 +132,12 @@ async function userLogin(userId: string, email: string, password: string) {
     '/v2/Account/UserLogin',
     { queryParams: { clientUser: email, password } },
   );
-  console.log('[lkm-account] UserLogin raw response keys:', Object.keys(result));
   console.log('[lkm-account] UserLogin raw response:', JSON.stringify(result));
-  const cardCode = (result.CodCartao ?? result.codCard ?? result.CardCode ?? result.cardCode ?? '') as string;
-  const accessToken = (result.AccessToken ?? result.accessToken ?? '') as string;
+  // LKM returns COD_CARTAO (uppercase) not CodCartao
+  const cardCode = String(
+    result.COD_CARTAO ?? result.CodCartao ?? result.codCard ?? result.CardCode ?? result.cardCode ?? '',
+  );
+  const accessToken = String(result.AccessToken ?? result.accessToken ?? '');
   if (!cardCode) throw new Error(`UserLogin returned no card code. Keys: ${Object.keys(result).join(',')}`);
   const shortCode = await saveCardToUser(userId, cardCode, accessToken);
   return { cardCode, shortCode };
@@ -130,7 +148,7 @@ async function userLogin(userId: string, email: string, password: string) {
 async function linkCard(userId: string, body: Record<string, unknown>) {
   const { phone, email, countryCode = '351' } = body;
 
-  let result: Record<string, unknown> = {};
+  let result: unknown = {};
 
   if (phone) {
     result = await lkmFetch('/v2/Card/GetCardForPhone', {
@@ -145,12 +163,23 @@ async function linkCard(userId: string, body: Record<string, unknown>) {
     throw new Error('Provide phone or email to link card');
   }
 
-  console.log('[lkm-account] linkCard raw response keys:', Object.keys(result));
   console.log('[lkm-account] linkCard raw response:', JSON.stringify(result));
-  const cardCode    = (result.CodCartao ?? result.codCard ?? (result as Record<string,unknown>).CardCode ?? (result as Record<string,unknown>).cardCode ?? '') as string;
-  const accessToken = (result.AccessToken ?? (result as Record<string,unknown>).accessToken ?? '') as string;
-  if (!cardCode) throw new Error(`GetCardForEmail returned no card code. Keys: ${Object.keys(result).join(',')}`);
-  const shortCode   = await saveCardToUser(userId, cardCode, accessToken);
+
+  // GetCardForEmail/GetCardForPhone return the card code as a bare JSON string
+  // (e.g. "1119000000001"), not an object — this endpoint carries no AccessToken.
+  let cardCode = '';
+  let accessToken = '';
+
+  if (typeof result === 'string') {
+    cardCode = result.trim();
+  } else if (result && typeof result === 'object') {
+    const r = result as Record<string, unknown>;
+    cardCode    = String(r.COD_CARTAO ?? r.CodCartao ?? r.codCard ?? r.CardCode ?? r.cardCode ?? '');
+    accessToken = String(r.AccessToken ?? r.accessToken ?? '');
+  }
+
+  if (!cardCode) throw new Error(`GetCardForEmail returned no card code. Response: ${JSON.stringify(result)}`);
+  const shortCode = await saveCardToUser(userId, cardCode, accessToken);
   return { cardCode, shortCode };
 }
 
@@ -176,12 +205,14 @@ async function ensureLinked(userId: string, email?: string, name?: string, passw
   }
 
   // 2. Try to find existing card by email (no password needed)
+  let linkErrMessage: string | undefined;
   try {
     await linkCard(userId, { email });
     const profile = await getProfile(userId);
     if (profile.linked) return profile;
   } catch (linkErr) {
-    console.warn('[lkm-account] GetCardForEmail failed:', (linkErr as Error).message);
+    linkErrMessage = (linkErr as Error).message;
+    console.warn('[lkm-account] GetCardForEmail failed:', linkErrMessage);
   }
 
   // 3. Register a new card (only if we have credentials)
@@ -200,7 +231,14 @@ async function ensureLinked(userId: string, email?: string, name?: string, passw
     }
   }
 
-  return { linked: false, needsRegistration: true };
+  // No password available to retry login/registration — surface why linking failed.
+  return {
+    linked: false,
+    needsRegistration: true,
+    errorMessage:
+      linkErrMessage ??
+      'No LKM card found for this email and no password available to register one. Please sign out and sign in again with your email and password.',
+  };
 }
 
 // ── Get LKM profile for current user ─────────────────────────────────────────
