@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,12 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
@@ -17,6 +19,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
 import { useLocaleStore, AppLocale } from '../../store/localeStore';
 import { USE_MOCK } from '../../lib/config';
+import { hasAdminAccess } from '../../lib/adminAccess';
 import JDLogo from '../../components/JDLogo';
 import type { ProfileStackParamList } from '../../navigation/types';
 
@@ -38,24 +41,69 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ProfileNav>();
   const { t } = useTranslation();
-  const { user, signOut } = useAuthStore();
+  const { user, signOut, deleteAccount } = useAuthStore();
   const { profile, fetchProfile } = useUserStore();
   const { setLocale } = useLocaleStore();
+  const [deleting, setDeleting] = useState(false);
+  const authEmail = user?.email ?? profile?.email ?? null;
+  const isAdmin = hasAdminAccess({
+    email: authEmail,
+    isAdminFlag: profile?.is_admin,
+    appMetadata: (user as { app_metadata?: Record<string, unknown> } | null)?.app_metadata,
+  });
 
-  useEffect(() => {
-    if (user?.id) {
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) return;
       void fetchProfile(user.id).then(() => {
         const lang = useUserStore.getState().profile?.preferred_language;
         if (lang === 'pt' || lang === 'en') {
           void setLocale(lang as AppLocale);
         }
       });
-    }
-  }, [user?.id]);
+    }, [user?.id, fetchProfile, setLocale]),
+  );
 
   const metaName = (user as { user_metadata?: { name?: string } })?.user_metadata?.name;
   const userName = profile?.name || metaName || '—';
   const email = profile?.email || user?.email || '—';
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      t('profile.deleteAccountTitle'),
+      t('profile.deleteAccountBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('profile.deleteAccountConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              t('profile.deleteAccountFinalTitle'),
+              t('profile.deleteAccountFinalBody'),
+              [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                  text: t('profile.deleteAccountConfirm'),
+                  style: 'destructive',
+                  onPress: () => void runDeleteAccount(),
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  };
+
+  const runDeleteAccount = async () => {
+    setDeleting(true);
+    const { error } = await deleteAccount();
+    setDeleting(false);
+    if (error) {
+      Alert.alert(t('common.error'), error.message || t('profile.deleteAccountError'));
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -65,10 +113,7 @@ export default function ProfileScreen() {
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.logoWrap}>
-          <JDLogo
-            size="small"
-            onLongPress={() => navigation.navigate('StaffPin')}
-          />
+          <JDLogo size="small" />
         </View>
 
         <Text style={styles.pageTitle}>{t('profile.title')}</Text>
@@ -80,6 +125,21 @@ export default function ProfileScreen() {
           <Text style={styles.userName}>{userName}</Text>
           <Text style={styles.userEmail}>{email}</Text>
         </View>
+
+        {isAdmin ? (
+          <TouchableOpacity
+            style={styles.adminCard}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('StaffHub')}
+          >
+            <Ionicons name="shield-checkmark-outline" size={28} color={Colors.gold} />
+            <View style={styles.adminCardText}>
+              <Text style={styles.adminCardTitle}>{t('staff.title')}</Text>
+              <Text style={styles.adminCardBody}>{t('staff.hubSubtitle')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#999" />
+          </TouchableOpacity>
+        ) : null}
 
         <View style={styles.settingsList}>
           {SETTINGS.map((item, idx) => (
@@ -113,6 +173,19 @@ export default function ProfileScreen() {
           <Text style={styles.signOutText}>{t('profile.signOut')}</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={confirmDeleteAccount}
+          disabled={deleting}
+          activeOpacity={0.85}
+        >
+          {deleting ? (
+            <ActivityIndicator color="#B00020" />
+          ) : (
+            <Text style={styles.deleteText}>{t('profile.deleteAccount')}</Text>
+          )}
+        </TouchableOpacity>
+
         <View style={{ height: 24 }} />
       </ScrollView>
     </View>
@@ -138,7 +211,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  userBlock: { alignItems: 'center', marginBottom: 32 },
+  userBlock: { alignItems: 'center', marginBottom: 20 },
   avatar: {
     width: 90,
     height: 90,
@@ -152,6 +225,20 @@ const styles = StyleSheet.create({
   },
   userName: { fontSize: 26, color: Colors.textPrimary, marginBottom: 4 },
   userEmail: { fontSize: 18, color: Colors.textPrimary },
+  adminCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.gold,
+  },
+  adminCardText: { flex: 1 },
+  adminCardTitle: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
+  adminCardBody: { fontSize: 13, color: '#757575', lineHeight: 18 },
   settingsList: {
     borderTopWidth: 1,
     borderColor: '#E8E0D5',
@@ -187,5 +274,16 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 18,
     color: Colors.gold,
+  },
+  deleteBtn: {
+    marginTop: 16,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteText: {
+    fontSize: 15,
+    color: '#B00020',
+    textDecorationLine: 'underline',
   },
 });

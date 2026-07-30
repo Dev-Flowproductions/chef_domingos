@@ -5,15 +5,20 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "chefdomingos",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F8F8F6"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "pt.chefdomingos.loyalty"
+      "bundleIdentifier": "pt.chefdomingos.loyalty",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "A app Chef Domingos precisa da câmara para ler o QR dos vouchers dos clientes."
+      }
     },
     "android": {
       "package": "pt.chefdomingos.loyalty",
@@ -34,7 +39,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Chef Domingos to access the camera to scan customer voucher QR codes."
+          "cameraPermission": "A app Chef Domingos precisa da câmara para ler o QR dos vouchers dos clientes."
         }
       ]
     ],

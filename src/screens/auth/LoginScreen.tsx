@@ -35,7 +35,6 @@ export default function LoginScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
       <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
 
-      {/* Logo */}
       <View style={styles.logoWrap}>
         <View style={styles.letters}>
           <Text style={[styles.letter, { color: '#B59363' }]}>J</Text>
@@ -43,19 +42,12 @@ export default function LoginScreen() {
         </View>
       </View>
 
-      {/* Title + subtitle */}
       <View style={styles.info}>
         <Text style={styles.title}>{t('auth.welcome')}</Text>
         <Text style={styles.body}>{t('auth.welcomeBody')}</Text>
       </View>
 
-      {/* Buttons */}
       <View style={styles.btns}>
-        <TouchableOpacity style={styles.btn} onPress={handleEmailLogin} activeOpacity={0.85}>
-          <Ionicons name="phone-portrait-outline" size={20} color="#fff" />
-          <Text style={styles.btnText}>{t('auth.loginPhone')}</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity style={styles.btn} onPress={handleEmailLogin} activeOpacity={0.85}>
           <Ionicons name="mail-outline" size={20} color="#fff" />
           <Text style={styles.btnText}>{t('auth.loginEmail')}</Text>

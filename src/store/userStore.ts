@@ -27,11 +27,17 @@ export const useUserStore = create<UserState>((set) => ({
     set({ loading: true });
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select(
+        'id, email, name, phone, preferred_language, notification_settings, is_admin, lkm_card_code, created_at',
+      )
       .eq('id', _userId)
       .single();
-    if (!error) set({ profile: data });
-    set({ loading: false });
+    if (error) {
+      console.warn('[userStore] fetchProfile failed:', error.message);
+      set({ loading: false });
+      return;
+    }
+    set({ profile: data as User, loading: false });
   },
 
   updateProfile: async (_userId, updates) => {

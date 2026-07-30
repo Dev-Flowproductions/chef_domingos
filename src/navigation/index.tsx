@@ -32,8 +32,10 @@ import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import NotificationsScreen from '../screens/profile/NotificationsScreen';
 import HelpScreen from '../screens/profile/HelpScreen';
 import LegalScreen from '../screens/profile/LegalScreen';
-import StaffPinScreen from '../screens/staff/StaffPinScreen';
+import StaffHubScreen from '../screens/staff/StaffHubScreen';
 import StaffValidateScreen from '../screens/staff/StaffValidateScreen';
+import AdminOffersScreen from '../screens/staff/AdminOffersScreen';
+import AdminMenuScreen from '../screens/staff/AdminMenuScreen';
 import SplashScreen from '../screens/splash/SplashScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 
@@ -173,8 +175,10 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="Help"          component={HelpScreen} />
       <ProfileStack.Screen name="Terms"         component={LegalScreen} />
       <ProfileStack.Screen name="Privacy"       component={LegalScreen} />
-      <ProfileStack.Screen name="StaffPin"      component={StaffPinScreen} />
+      <ProfileStack.Screen name="StaffHub"      component={StaffHubScreen} />
       <ProfileStack.Screen name="StaffValidate" component={StaffValidateScreen} />
+      <ProfileStack.Screen name="AdminOffers"   component={AdminOffersScreen} />
+      <ProfileStack.Screen name="AdminMenu"     component={AdminMenuScreen} />
     </ProfileStack.Navigator>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,22 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { getRestaurantMenu, type RestaurantId } from '../../lib/menuI18n';
 import type { HomeStackParamList } from '../../navigation/types';
 import JDLogo from '../../components/JDLogo';
+import {
+  formatMenuPrice,
+  itemsForRestaurant,
+  localizedDescription,
+  localizedName,
+  useMenuStore,
+} from '../../store/menuStore';
 
 type MenuRoute = RouteProp<HomeStackParamList, 'Menu'>;
 
@@ -21,18 +29,27 @@ export default function MenuScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute<MenuRoute>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('pt') ? 'pt' : 'en';
 
   const restaurantId: RestaurantId = route.params?.restaurantId ?? 'portugueseLab';
   const menuConfig = getRestaurantMenu(restaurantId);
+  const { items, loading, fetchMenus } = useMenuStore();
 
   const [activeCategory, setActiveCategory] = useState(menuConfig.defaultCategory);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchMenus();
+    }, [fetchMenus]),
+  );
 
   useEffect(() => {
     setActiveCategory(menuConfig.defaultCategory);
   }, [restaurantId, menuConfig.defaultCategory]);
 
-  const itemIds = menuConfig.items[activeCategory] ?? [];
+  const restaurantItems = itemsForRestaurant(items, restaurantId);
+  const categoryItems = restaurantItems.filter((i) => i.category_id === activeCategory);
 
   return (
     <View style={styles.root}>
@@ -67,7 +84,9 @@ export default function MenuScreen() {
               style={styles.catBtn}
             >
               <Text style={[styles.catText, activeCategory === catId && styles.catTextActive]}>
-                {t(`menu.${restaurantId}.categories.${catId}`)}
+                {t(`menu.${restaurantId}.categories.${catId}`, {
+                  defaultValue: catId,
+                })}
               </Text>
               {activeCategory === catId && <View style={styles.catUnderline} />}
             </TouchableOpacity>
@@ -75,25 +94,38 @@ export default function MenuScreen() {
         </ScrollView>
 
         <Text style={styles.sectionHeading}>
-          {t(`menu.${restaurantId}.categories.${activeCategory}`)}
+          {t(`menu.${restaurantId}.categories.${activeCategory}`, {
+            defaultValue: activeCategory,
+          })}
         </Text>
 
-        <View style={styles.menuList}>
-          {itemIds.map((itemId, idx) => (
-            <View key={itemId}>
-              <View style={styles.menuRow}>
-                <Text style={styles.menuName}>
-                  {t(`menu.${restaurantId}.items.${itemId}.name`)}
-                </Text>
-                <View style={styles.menuDots} />
-                <Text style={styles.menuPrice}>
-                  {t(`menu.${restaurantId}.items.${itemId}.price`)}
-                </Text>
-              </View>
-              {idx < itemIds.length - 1 && <View style={styles.divider} />}
-            </View>
-          ))}
-        </View>
+        {loading && restaurantItems.length === 0 ? (
+          <ActivityIndicator color={Colors.gold} style={{ marginTop: 24 }} />
+        ) : (
+          <View style={styles.menuList}>
+            {categoryItems.map((item, idx) => {
+              const description = localizedDescription(item, locale);
+              return (
+                <View key={item.id}>
+                  <View style={styles.menuRow}>
+                    <View style={styles.menuNameBlock}>
+                      <Text style={styles.menuName}>{localizedName(item, locale)}</Text>
+                      {description ? (
+                        <Text style={styles.menuDescription}>{description}</Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.menuDots} />
+                    <Text style={styles.menuPrice}>{formatMenuPrice(item.price_euros, locale)}</Text>
+                  </View>
+                  {idx < categoryItems.length - 1 && <View style={styles.divider} />}
+                </View>
+              );
+            })}
+            {categoryItems.length === 0 ? (
+              <Text style={styles.empty}>{t('menu.emptyCategory')}</Text>
+            ) : null}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -172,27 +204,43 @@ const styles = StyleSheet.create({
   },
   menuRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: 12,
+  },
+  menuNameBlock: {
+    flex: 1,
+    gap: 4,
   },
   menuName: {
     fontSize: 18,
     color: Colors.textPrimary,
-    flex: 1,
+  },
+  menuDescription: {
+    fontSize: 13,
+    color: '#757575',
+    lineHeight: 18,
+    paddingRight: 8,
   },
   menuDots: {
-    flex: 0.5,
+    width: 24,
     height: 1,
     backgroundColor: '#C8C8C8',
     marginHorizontal: 8,
+    marginTop: 14,
   },
   menuPrice: {
     fontSize: 18,
     fontWeight: '700',
     color: Colors.textPrimary,
+    marginTop: 2,
   },
   divider: {
     height: 1,
     backgroundColor: '#E8E0D5',
+  },
+  empty: {
+    fontSize: 14,
+    color: '#757575',
+    marginTop: 8,
   },
 });
