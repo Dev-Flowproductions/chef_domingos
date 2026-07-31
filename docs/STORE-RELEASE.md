@@ -31,14 +31,20 @@ npx eas-cli init
 eas env:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://wrawujclqgxdnbddwokv.supabase.co" --environment production
 eas env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "<anon key>" --environment production
 # After hosting legal pages:
-eas env:create --name EXPO_PUBLIC_PRIVACY_URL --value "https://…" --environment production
-eas env:create --name EXPO_PUBLIC_TERMS_URL --value "https://…" --environment production
+eas env:create --name EXPO_PUBLIC_PRIVACY_URL --value "https://chef-domingos-legal.vercel.app/privacy-policy.html" --environment production
+eas env:create --name EXPO_PUBLIC_TERMS_URL --value "https://chef-domingos-legal.vercel.app/terms-of-service.html" --environment production
 ```
+
+Or after `eas login`: `npm run eas:setup` (`scripts/eas-setup.ps1`).
 
 ### 3. Host privacy + terms URLs
 
-Upload `store-listing/privacy-policy.html` and `store-listing/terms-of-service.html` to any public HTTPS host (company site, Vercel, Netlify).  
-Paste those URLs into App Store Connect + Google Play Console **and** into `EXPO_PUBLIC_PRIVACY_URL` / `EXPO_PUBLIC_TERMS_URL`.
+**Done** — hosted on Vercel:
+
+- Privacy: https://chef-domingos-legal.vercel.app/privacy-policy.html
+- Terms: https://chef-domingos-legal.vercel.app/terms-of-service.html
+
+Paste those URLs into App Store Connect + Google Play Console **and** into EAS env (`EXPO_PUBLIC_PRIVACY_URL` / `EXPO_PUBLIC_TERMS_URL`). Source files remain in `store-listing/`.
 
 Have legal counsel review the copy before public launch if required.
 
@@ -48,13 +54,16 @@ In Supabase → Authentication → URL configuration, add:
 
 - `chefdomingos://auth/reset`
 
+See step-by-step: [`scripts/configure-auth-redirect.md`](../scripts/configure-auth-redirect.md).  
+Dashboard: https://supabase.com/dashboard/project/wrawujclqgxdnbddwokv/auth/url-configuration
+
 ### 5. Deploy delete-account function
 
-```bash
-npx supabase functions deploy delete-account --project-ref wrawujclqgxdnbddwokv
-```
+**Done** — `delete-account` is ACTIVE on project `wrawujclqgxdnbddwokv`.
 
 ### 6. Switch LKM to production (when LKM signs off)
+
+Use the template [`scripts/switch-lkm-to-prod.sql`](../scripts/switch-lkm-to-prod.sql) after filling production token/HMAC/store id.
 
 Update `lkm_runtime_config` / secrets:
 

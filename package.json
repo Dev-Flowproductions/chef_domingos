@@ -9,6 +9,8 @@
     "web": "expo start --web",
     "lkm:deploy": "npx supabase functions deploy lkm-account lkm-points lkm-vouchers lkm-transactions lkm-scan delete-account reward-offers --project-ref wrawujclqgxdnbddwokv",
     "lkm:ready": "npm run lkm:deploy",
+    "eas:setup": "powershell -ExecutionPolicy Bypass -File scripts/eas-setup.ps1",
+    "admin:reset-password": "node scripts/reset-admin-password.mjs",
     "build:preview": "eas build --profile preview --platform all",
     "build:prod": "eas build --profile production --platform all",
     "submit:ios": "eas submit --platform ios --profile production --latest",
