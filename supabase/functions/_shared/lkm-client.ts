@@ -269,6 +269,30 @@ export class LkmApiError extends Error {
   }
 }
 
+/**
+ * LKM points endpoints are inconsistent across environments:
+ * - GET /v2/GetPoints → plain number (preferred)
+ * - GET /v2/Points → number OR [{ points, balance, ... }]
+ */
+export function parseLkmPointsBalance(raw: unknown): number {
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return n;
+  }
+  if (Array.isArray(raw) && raw.length > 0) {
+    return parseLkmPointsBalance(raw[0]);
+  }
+  if (raw && typeof raw === 'object') {
+    const o = raw as Record<string, unknown>;
+    for (const key of ['points', 'Points', 'ActualPoints', 'Pontos']) {
+      const n = Number(o[key]);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return 0;
+}
+
 // ── Auth helper: extract Supabase user from request ───────────────────────────
 
 export async function getSupabaseUser(req: Request) {

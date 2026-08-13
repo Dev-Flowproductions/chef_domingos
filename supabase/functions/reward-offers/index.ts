@@ -13,6 +13,7 @@ import {
   getLkmCard,
   getClientToken,
   lkmFetch,
+  parseLkmPointsBalance,
 } from '../_shared/lkm-client.ts';
 
 type OfferKind = 'money' | 'promo';
@@ -37,8 +38,10 @@ async function getLkmBalance(userId: string): Promise<number> {
   try {
     const { accessToken } = await getLkmCard(userId);
     const clientToken = await getClientToken(accessToken);
-    const balanceRaw = await lkmFetch<number>('/v2/Points', { clientToken });
-    return Number(balanceRaw ?? 0);
+    const balanceRaw = await lkmFetch<unknown>('/v2/GetPoints', { clientToken }).catch(() =>
+      lkmFetch<unknown>('/v2/Points', { clientToken }),
+    );
+    return parseLkmPointsBalance(balanceRaw);
   } catch {
     return 0;
   }

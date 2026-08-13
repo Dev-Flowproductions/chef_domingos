@@ -49,13 +49,10 @@ export const usePointsStore = create<PointsState>((set) => ({
         loading: false,
       });
     } catch (err) {
+      // Keep last known balance on transient errors; only clear when explicitly reset.
       set({
         loading: false,
         error: (err as Error).message,
-        balance: 0,
-        converted: 0,
-        progress: 0,
-        ptsToNext: DEFAULT_MILESTONES[0].pts,
       });
     }
   },

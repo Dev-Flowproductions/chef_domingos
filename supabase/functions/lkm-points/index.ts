@@ -1,13 +1,8 @@
 // lkm-points Edge Function
 // GET /lkm-points → { balance, converted, milestones, nextMilestone, progress, ptsToNext }
 //
-// LKM API spec:
-//   GET /v2/Points            → integer (int32)   — total points balance
-//   GET /v2/GetConvertedPoints → number (double)   — converted monetary value
-//
-// Programme rules (Chef Domingos):
-//   Earn: 1€ = 100 points
-//   Redeem fixed money vouchers: 500→5€, 900→10€, 1700→20€
+// LKM may return /v2/Points as [{ points, balance, ... }] instead of a plain number.
+// Prefer /v2/GetPoints (plain number); fall back to /v2/Points with parsing.
 
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
 import {
@@ -27,6 +22,23 @@ const MILESTONES = [
   { pts: 1700, label: 'Vale 20€' },
 ];
 
+function parsePoints(raw: unknown): number {
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return n;
+  }
+  if (Array.isArray(raw) && raw.length > 0) return parsePoints(raw[0]);
+  if (raw && typeof raw === 'object') {
+    const o = raw as Record<string, unknown>;
+    for (const key of ['points', 'Points', 'ActualPoints', 'Pontos']) {
+      const n = Number(o[key]);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return 0;
+}
+
 async function getClaimedPoints(userId: string): Promise<number> {
   const db = serviceDb();
   const { data } = await db
@@ -45,17 +57,17 @@ Deno.serve(async (req: Request) => {
     const { accessToken } = await getLkmCard(user.id);
     const clientToken = await getClientToken(accessToken);
 
-    // Both endpoints return a plain number (not wrapped in an object)
     const [balanceRaw, convertedRaw, claimed] = await Promise.all([
-      lkmFetch<number>('/v2/Points', { clientToken }),
-      lkmFetch<number>('/v2/GetConvertedPoints', { clientToken }),
+      lkmFetch<unknown>('/v2/GetPoints', { clientToken }).catch(() =>
+        lkmFetch<unknown>('/v2/Points', { clientToken }),
+      ),
+      lkmFetch<unknown>('/v2/GetConvertedPoints', { clientToken }),
       getClaimedPoints(user.id),
     ]);
 
-    // Available = LKM earned − points spent on app vouchers/promos
-    const lkmBalance = Number(balanceRaw ?? 0);
+    const lkmBalance = parsePoints(balanceRaw);
     const balance = Math.max(0, lkmBalance - claimed);
-    const converted = Number(convertedRaw ?? 0);
+    const converted = parsePoints(convertedRaw);
 
     const nextMilestone = MILESTONES.find((m) => balance < m.pts) ?? null;
     const progress = nextMilestone
