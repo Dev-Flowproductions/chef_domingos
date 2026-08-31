@@ -35,6 +35,7 @@ import LegalScreen from '../screens/profile/LegalScreen';
 import StaffHubScreen from '../screens/staff/StaffHubScreen';
 import StaffValidateScreen from '../screens/staff/StaffValidateScreen';
 import AdminOffersScreen from '../screens/staff/AdminOffersScreen';
+import StaffRemovePointsScreen from '../screens/staff/StaffRemovePointsScreen';
 import AdminMenuScreen from '../screens/staff/AdminMenuScreen';
 import SplashScreen from '../screens/splash/SplashScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
@@ -177,6 +178,7 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="Privacy"       component={LegalScreen} />
       <ProfileStack.Screen name="StaffHub"      component={StaffHubScreen} />
       <ProfileStack.Screen name="StaffValidate" component={StaffValidateScreen} />
+      <ProfileStack.Screen name="StaffRemovePoints" component={StaffRemovePointsScreen} />
       <ProfileStack.Screen name="AdminOffers"   component={AdminOffersScreen} />
       <ProfileStack.Screen name="AdminMenu"     component={AdminMenuScreen} />
     </ProfileStack.Navigator>

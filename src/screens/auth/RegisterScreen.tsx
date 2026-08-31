@@ -66,6 +66,7 @@ export default function RegisterScreen() {
           {t('auth.verifyEmailBody')}{'\n'}
           <Text style={styles.successEmail}>{email}</Text>
           {'\n\n'}{t('auth.verifyEmailHint')}
+          {'\n\n'}{t('auth.activationWarningSuccess')}
         </Text>
         <TouchableOpacity
           style={styles.btn}
@@ -160,6 +161,10 @@ export default function RegisterScreen() {
             <Text style={styles.checkText}>{t('auth.newsOptIn')}</Text>
           </TouchableOpacity>
 
+          <View style={styles.warningBox}>
+            <Text style={styles.warningText}>{t('auth.activationWarning')}</Text>
+          </View>
+
           <TouchableOpacity
             style={[styles.btn, (!termsAccepted || loading) && styles.btnDisabled]}
             onPress={handleFinish}
@@ -214,6 +219,15 @@ const styles = StyleSheet.create({
   checkmark: { color: '#fff', fontSize: 14, fontWeight: '700' },
   checkText: { flex: 1, fontSize: 13, color: Colors.textPrimary, lineHeight: 20 },
   link: { textDecorationLine: 'underline' },
+  warningBox: {
+    backgroundColor: '#F5EFE4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0D4C0',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  warningText: { fontSize: 13, color: Colors.textPrimary, lineHeight: 20 },
   btn: {
     backgroundColor: Colors.gold,
     height: 52,

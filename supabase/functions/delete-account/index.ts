@@ -46,6 +46,7 @@ Deno.serve(async (req: Request) => {
 
     await db.from('vouchers').delete().eq('user_id', userId);
     await db.from('loyalty_transactions').delete().eq('user_id', userId);
+    await db.from('points_reversals').delete().eq('user_id', userId);
     await db.from('users').delete().eq('id', userId);
 
     const { error } = await db.auth.admin.deleteUser(userId);

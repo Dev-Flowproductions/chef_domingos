@@ -56,6 +56,19 @@ export default function StaffHubScreen() {
       <TouchableOpacity
         style={styles.card}
         activeOpacity={0.85}
+        onPress={() => navigation.navigate('StaffRemovePoints')}
+      >
+        <Ionicons name="remove-circle-outline" size={28} color={Colors.gold} />
+        <View style={styles.cardText}>
+          <Text style={styles.cardTitle}>{t('staff.removeTitle')}</Text>
+          <Text style={styles.cardBody}>{t('staff.removeHint')}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={22} color="#999" />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.85}
         onPress={() => navigation.navigate('AdminOffers')}
       >
         <Ionicons name="cash-outline" size={28} color={Colors.gold} />

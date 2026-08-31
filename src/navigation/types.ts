@@ -16,6 +16,7 @@ export type ProfileStackParamList = {
   StaffValidate: undefined;
   AdminOffers: undefined;
   AdminMenu: undefined;
+  StaffRemovePoints: undefined;
 };
 
 export type RewardsStackParamList = {

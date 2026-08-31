@@ -1,7 +1,7 @@
 import { POINTS_PER_EURO } from './loyaltyRules';
 import { RESTAURANT_MENUS, type RestaurantId } from './menuI18n';
 
-/** Numeric menu prices (€) — source of truth for promo math (1€ = 100 pts). */
+/** Numeric menu prices (€) — source of truth for promo math (1€ = 10 pts). */
 export const MENU_ITEM_PRICES: Record<RestaurantId, Record<string, number>> = {
   portugueseLab: {
     menuFrango: 12.5,
@@ -169,7 +169,7 @@ export function listAdminMenuItems(restaurantId: RestaurantId): MenuItemRef[] {
   return collectMenuItems(restaurantId, (categoryId) => !excluded.has(categoryId));
 }
 
-/** Discount applied on till + points to redeem (1€ = 100 pts). */
+/** Discount applied on till + points to redeem (1€ = 10 pts). */
 export function computePromoValues(itemPriceEuros: number, benefit: PromoBenefit) {
   const euroValue =
     benefit === 'free'

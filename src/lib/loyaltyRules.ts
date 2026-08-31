@@ -1,10 +1,11 @@
 /**
- * Chef Domingos loyalty rules.
- * Earn / redeem: 1€ = 100 points.
+ * Chef Domingos loyalty rules (confirmed with LKM).
+ * Earn: 1€ = 10 points.
+ * Redeem money vouchers: 500→5€, 900→10€, 1700→20€, 2500→30€.
  * Progress bar: 3 fixed money-voucher milestones.
  * Catalog offers: admin-created (defaults seeded in DB).
  */
-export const POINTS_PER_EURO = 100;
+export const POINTS_PER_EURO = 10;
 
 /** After redeeming a money voucher, block another money redeem for this long. */
 export const MONEY_VOUCHER_COOLDOWN_MS = 24 * 60 * 60 * 1000;

@@ -48,6 +48,15 @@ async function getClaimedPoints(userId: string): Promise<number> {
   return (data ?? []).reduce((sum, row) => sum + Number(row.points_cost ?? 0), 0);
 }
 
+async function getReversedPoints(userId: string): Promise<number> {
+  const db = serviceDb();
+  const { data } = await db
+    .from('points_reversals')
+    .select('points')
+    .eq('user_id', userId);
+  return (data ?? []).reduce((sum, row) => sum + Number(row.points ?? 0), 0);
+}
+
 Deno.serve(async (req: Request) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -57,16 +66,17 @@ Deno.serve(async (req: Request) => {
     const { accessToken } = await getLkmCard(user.id);
     const clientToken = await getClientToken(accessToken);
 
-    const [balanceRaw, convertedRaw, claimed] = await Promise.all([
+    const [balanceRaw, convertedRaw, claimed, reversed] = await Promise.all([
       lkmFetch<unknown>('/v2/GetPoints', { clientToken }).catch(() =>
         lkmFetch<unknown>('/v2/Points', { clientToken }),
       ),
       lkmFetch<unknown>('/v2/GetConvertedPoints', { clientToken }),
       getClaimedPoints(user.id),
+      getReversedPoints(user.id),
     ]);
 
     const lkmBalance = parsePoints(balanceRaw);
-    const balance = Math.max(0, lkmBalance - claimed);
+    const balance = Math.max(0, lkmBalance - claimed - reversed);
     const converted = parsePoints(convertedRaw);
 
     const nextMilestone = MILESTONES.find((m) => balance < m.pts) ?? null;

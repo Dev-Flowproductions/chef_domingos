@@ -56,6 +56,21 @@ async function getClaimedPoints(userId: string): Promise<number> {
   return (data ?? []).reduce((sum, row) => sum + Number(row.points_cost ?? 0), 0);
 }
 
+async function getReversedPoints(userId: string): Promise<number> {
+  const db = serviceDb();
+  const { data } = await db.from('points_reversals').select('points').eq('user_id', userId);
+  return (data ?? []).reduce((sum, row) => sum + Number(row.points ?? 0), 0);
+}
+
+async function getAvailablePoints(userId: string): Promise<number> {
+  const [lkm, claimed, reversed] = await Promise.all([
+    getLkmBalance(userId),
+    getClaimedPoints(userId),
+    getReversedPoints(userId),
+  ]);
+  return Math.max(0, lkm - claimed - reversed);
+}
+
 function isWithinWindow(startsAt: string | null, endsAt: string | null, nowMs = Date.now()): boolean {
   if (startsAt && new Date(startsAt).getTime() > nowMs) return false;
   if (endsAt && new Date(endsAt).getTime() < nowMs) return false;
@@ -288,9 +303,7 @@ async function claimOffer(userId: string, offerId: string) {
     }
   }
 
-  const lkmBalance = await getLkmBalance(userId);
-  const spent = await getClaimedPoints(userId);
-  const available = lkmBalance - spent;
+  const available = await getAvailablePoints(userId);
   if (available < Number(offer.points_cost)) {
     throw new Error(
       `Pontos insuficientes. Disponível: ${available}, necessário: ${offer.points_cost}`,
