@@ -6,6 +6,7 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -15,6 +16,9 @@ import type { ProfileStackParamList } from '../../navigation/types';
 
 type LegalRoute = RouteProp<ProfileStackParamList, 'Terms' | 'Privacy'>;
 
+const PRIVACY_URL = process.env.EXPO_PUBLIC_PRIVACY_URL?.trim() ?? '';
+const TERMS_URL = process.env.EXPO_PUBLIC_TERMS_URL?.trim() ?? '';
+
 export default function LegalScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -23,17 +27,23 @@ export default function LegalScreen() {
 
   const isTerms = route.name === 'Terms';
   const title = isTerms ? t('legal.termsTitle') : t('legal.privacyTitle');
+  const externalUrl = isTerms ? TERMS_URL : PRIVACY_URL;
 
   const sections = isTerms
     ? [
         { title: 'legal.termsS1Title', body: 'legal.termsS1' },
         { title: 'legal.termsS2Title', body: 'legal.termsS2' },
         { title: 'legal.termsS3Title', body: 'legal.termsS3' },
+        { title: 'legal.termsS4Title', body: 'legal.termsS4' },
+        { title: 'legal.termsS5Title', body: 'legal.termsS5' },
       ]
     : [
         { title: 'legal.privacyS1Title', body: 'legal.privacyS1' },
         { title: 'legal.privacyS2Title', body: 'legal.privacyS2' },
         { title: 'legal.privacyS3Title', body: 'legal.privacyS3' },
+        { title: 'legal.privacyS4Title', body: 'legal.privacyS4' },
+        { title: 'legal.privacyS5Title', body: 'legal.privacyS5' },
+        { title: 'legal.privacyS6Title', body: 'legal.privacyS6' },
       ];
 
   return (
@@ -48,7 +58,17 @@ export default function LegalScreen() {
 
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.updated}>{t('legal.lastUpdated')}</Text>
-        <Text style={styles.intro}>{t('legal.placeholderIntro')}</Text>
+        <Text style={styles.intro}>{t('legal.intro')}</Text>
+
+        {externalUrl ? (
+          <TouchableOpacity
+            onPress={() => void Linking.openURL(externalUrl)}
+            style={styles.webLinkWrap}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.webLink}>{t('legal.openFullVersion')}</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {sections.map((s) => (
           <View key={s.title} style={styles.section}>
@@ -68,7 +88,9 @@ const styles = StyleSheet.create({
   back: { color: Colors.gold, fontSize: 16, marginBottom: 16 },
   title: { fontSize: 28, color: Colors.gold, marginBottom: 8 },
   updated: { fontSize: 12, color: '#888', marginBottom: 16 },
-  intro: { fontSize: 15, color: Colors.textPrimary, lineHeight: 24, marginBottom: 24 },
+  intro: { fontSize: 15, color: Colors.textPrimary, lineHeight: 24, marginBottom: 16 },
+  webLinkWrap: { marginBottom: 24 },
+  webLink: { color: Colors.gold, fontSize: 15, textDecorationLine: 'underline' },
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
   sectionBody: { fontSize: 15, color: Colors.textPrimary, lineHeight: 24 },

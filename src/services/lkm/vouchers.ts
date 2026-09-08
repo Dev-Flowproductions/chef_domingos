@@ -5,6 +5,7 @@ export interface CatalogItem {
   title:          string;
   description:    string;
   pointsCost:     number;
+  euroValue?:     number;
   imageUrl:       string;
   restaurantName: string;
   restaurantId:   string;
@@ -17,6 +18,7 @@ export interface UserVoucher {
   state:          'active' | 'used' | 'expired' | 'pending';
   restaurantName: string;
   pointsCost:     number;
+  euroValue?:     number;
   expiresAt:      string | null;
   activeFrom:     string | null;
   qrValue:        string;
@@ -31,6 +33,7 @@ export type VoucherValidationStatus =
 export interface VoucherValidationResult {
   status: VoucherValidationStatus;
   title:  string;
+  euroValue?: number;
 }
 
 export async function getRewardCatalog(): Promise<CatalogItem[]> {

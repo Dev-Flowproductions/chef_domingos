@@ -1,19 +1,24 @@
 {
   "expo": {
     "name": "Chef Domingos",
-    "slug": "chef-domingos",
+    "slug": "chef",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "chefdomingos",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F8F8F6"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "pt.chefdomingos.loyalty"
+      "bundleIdentifier": "pt.chefdomingos.loyalty",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "A app Chef Domingos precisa da câmara para ler o QR dos vouchers dos clientes."
+      }
     },
     "android": {
       "package": "pt.chefdomingos.loyalty",
@@ -23,7 +28,11 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,14 +43,15 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Chef Domingos to access the camera to scan customer voucher QR codes."
+          "cameraPermission": "A app Chef Domingos precisa da câmara para ler o QR dos vouchers dos clientes."
         }
       ]
     ],
     "extra": {
       "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+        "projectId": "3735c0c2-fc00-46b7-9e60-a9a584a6effb"
       }
-    }
+    },
+    "owner": "witflow"
   }
 }

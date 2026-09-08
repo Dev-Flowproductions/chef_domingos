@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 
-const FAQ_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
+const FAQ_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const;
 
 export default function HelpScreen() {
   const insets = useSafeAreaInsets();

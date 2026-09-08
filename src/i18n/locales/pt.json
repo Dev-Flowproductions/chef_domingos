@@ -30,6 +30,10 @@
     "email": "Email",
     "password": "Palavra-passe",
     "login": "Entrar",
+    "forgotPassword": "Esqueceu-se da palavra-passe?",
+    "fillEmailForReset": "Introduza o email acima para receber o link de reposição.",
+    "resetSentTitle": "Verifique o seu email",
+    "resetSentBody": "Se existir uma conta com esse email, enviámos um link para repor a palavra-passe. Abra-o neste dispositivo para continuar.",
     "registerTitle": "Criar conta",
     "name": "Nome",
     "namePlaceholder": "O seu nome",
@@ -46,6 +50,8 @@
     "privacyLink": "Política de Privacidade",
     "termsAnd": "e a",
     "newsOptIn": "Aceito receber novidades, promoções e ofertas personalizadas.",
+    "activationWarning": "A conta de fidelização fica totalmente ativa cerca de 12 horas após o registo. Até lá, o cartão / QR em Ganhar pode ainda não funcionar no restaurante.",
+    "activationWarningSuccess": "Lembrete: a conta de fidelização fica totalmente ativa cerca de 12 horas após o registo.",
     "fieldsRequired": "Campos obrigatórios",
     "fillEmailPassword": "Por favor preencha o email e a palavra-passe.",
     "fillAllFields": "Por favor preencha todos os campos.",
@@ -66,36 +72,44 @@
     "slide2Title": "Ganhar é simples.",
     "slide2Body": "Depois de saborear a sua refeição, abra a secção Ganhar e mostre o seu código QR ao balcão. Os pontos são adicionados automaticamente.",
     "slide3Title": "Recompensas\ne Ofertas",
-    "slide3Body": "Troque pontos por refeições, sobremesas ou ofertas exclusivas para utilizar na sua próxima visita.",
+    "slide3Body": "Troque pontos por vales em dinheiro para usar na sua próxima visita.",
     "next": "Próximo",
     "start": "Começar",
     "skip": "Saltar"
   },
   "home": {
     "greeting": "Olá, {{name}}!",
-    "exclusiveOffers": "Ofertas Exclusivas",
+    "exclusiveOffers": "Promoções",
+    "promoHint": "Ofertas de itens concretos do menu (ex.: Margherita grátis, 20% Diavola). Ao resgatar, gasta pontos.",
+    "noPromos": "Não há promoções ativas de momento. Volte em breve.",
     "ourRestaurants": "Os Nossos Restaurantes",
     "pointsCost": "{{count}} Pontos"
   },
   "offers": {
-    "f1": {
-      "title": "2ª Pizza com 50% de Desconto",
-      "description": "Válido no Pizza Lab",
-      "tag": "Oferta de Amanhã"
+    "v5": {
+      "title": "Vale 5€",
+      "description": "Troque 500 pontos por um vale de 5€",
+      "tag": "Vale em dinheiro"
     },
-    "f2": {
-      "title": "Sobremesa Grátis",
-      "description": "Válido no Portuguese Lab",
-      "tag": "Oferta Especial"
+    "v10": {
+      "title": "Vale 10€",
+      "description": "Troque 900 pontos por um vale de 10€",
+      "tag": "Vale em dinheiro"
     },
-    "f3": {
-      "title": "Café Grátis",
-      "description": "Válido em todos os restaurantes",
-      "tag": "Esta Semana"
+    "v20": {
+      "title": "Vale 20€",
+      "description": "Troque 1700 pontos por um vale de 20€",
+      "tag": "Vale em dinheiro"
+    },
+    "v30": {
+      "title": "Vale 30€",
+      "description": "Troque 2500 pontos por um vale de 30€",
+      "tag": "Vale em dinheiro"
     }
   },
   "menu": {
     "title": "Menu",
+    "emptyCategory": "Sem itens nesta categoria.",
     "restaurants": {
       "portugueseLab": "Portuguese Lab",
       "pizzaLab": "Pizza Lab"
@@ -103,52 +117,535 @@
     "portugueseLab": {
       "categories": {
         "menus": "Menus",
-        "principais": "Principais",
-        "vegetariano": "Vegetariano",
-        "sobremesa": "Sobremesa"
+        "saladas": "Saladas",
+        "peixe": "Pratos de peixe",
+        "carne": "Pratos de carne",
+        "vegetariano": "Pratos vegetarianos",
+        "complementos": "Complementos",
+        "sobremesa": "Sobremesas",
+        "bebidas": "Bebidas"
       },
       "items": {
-        "menuDoDia": { "name": "Menu do Dia", "price": "9,90€" },
-        "menuExecutive": { "name": "Menu Executive", "price": "14,90€" },
-        "menuFamilia": { "name": "Menu Família", "price": "32,00€" },
-        "medalhoesNovilho": { "name": "Medalhões de novilho", "price": "12,90€" },
-        "escalopesFrango": { "name": "Escalopes de frango", "price": "11,90€" },
-        "bifinhoFrango": { "name": "Bifinho de frango grelhados", "price": "12,50€" },
-        "bacalhauBras": { "name": "Bacalhau à Brás", "price": "14,50€" },
-        "salmaoGrelhado": { "name": "Salmão grelhado", "price": "13,90€" },
-        "risottoCogumelos": { "name": "Risotto de cogumelos", "price": "11,50€" },
-        "lasanhaLegumes": { "name": "Lasanha de legumes", "price": "10,90€" },
-        "saladaCaesar": { "name": "Salada Caesar", "price": "9,50€" },
-        "pastelNata": { "name": "Pastel de nata", "price": "1,50€" },
-        "mousseChocolate": { "name": "Mousse de chocolate", "price": "4,90€" },
-        "pudimFlan": { "name": "Pudim flan", "price": "4,50€" },
-        "tarteMaca": { "name": "Tarte de maçã", "price": "5,00€" }
+        "menuFrango": {
+          "name": "Menu frango",
+          "price": "12,50€",
+          "description": "Bifinho de frango, escalopes de frango com ou sem molho, hambúrguer de frango. Bebida incluída: água 33cl, refrigerante a copo 30cl, vinho 20cl, imperial 25cl, Somersby 20cl, cerveja sem álcool 25cl ou cerveja preta 25cl."
+        },
+        "menuCarne": {
+          "name": "Menu carne",
+          "price": "13,50€",
+          "description": "Secretos de porco, medalhões de novilho com ou sem molho. Bebida incluída: água 33cl, refrigerante a copo 30cl, vinho 20cl, imperial 25cl, Somersby 20cl, cerveja sem álcool 25cl ou cerveja preta 25cl."
+        },
+        "menuBras": {
+          "name": "Menu Brás",
+          "price": "13,50€",
+          "description": "Bacalhau à Brás. Bebida incluída: água 33cl, refrigerante a copo 30cl, vinho 20cl, imperial 25cl, Somersby 20cl, cerveja sem álcool 25cl ou cerveja preta 25cl."
+        },
+        "saladaVerao": {
+          "name": "Salada de verão",
+          "price": "12,50€"
+        },
+        "risottoRiaFormosa": {
+          "name": "Risotto da Ria Formosa",
+          "price": "12,50€"
+        },
+        "risottoNegro": {
+          "name": "Risotto negro",
+          "price": "12,50€"
+        },
+        "arrozTamboril": {
+          "name": "Arroz de tamboril",
+          "price": "12,90€"
+        },
+        "hamburgerChoco": {
+          "name": "Hambúrguer de choco",
+          "price": "12,90€"
+        },
+        "fileteRobalo": {
+          "name": "Filete de robalo",
+          "price": "14,50€"
+        },
+        "bacalhauLagareiro": {
+          "name": "Bacalhau à lagareiro",
+          "price": "17,50€"
+        },
+        "lomboSalmao": {
+          "name": "Lombo de salmão",
+          "price": "15,50€"
+        },
+        "polvoLagareiro": {
+          "name": "Polvo à lagareiro",
+          "price": "18,90€"
+        },
+        "tirasChoco": {
+          "name": "Tiras de choco",
+          "price": "12,90€"
+        },
+        "bifeNovilhoGrelhado": {
+          "name": "Bife de novilho grelhado",
+          "price": "13,50€"
+        },
+        "bitoqueChef": {
+          "name": "Bitoque à chef",
+          "price": "13,50€"
+        },
+        "hamburgerChef": {
+          "name": "Hambúrguer à chef",
+          "price": "12,50€"
+        },
+        "pianinhoPorcoIberico": {
+          "name": "Pianinho de porco ibérico",
+          "price": "13,90€"
+        },
+        "risottoCogumelos": {
+          "name": "Risoto de cogumelos",
+          "price": "12,50€"
+        },
+        "hamburgerFeijao": {
+          "name": "Hambúrguer de feijão",
+          "price": "12,50€"
+        },
+        "sopaDoDia": {
+          "name": "Sopa do dia",
+          "price": "2,50€"
+        },
+        "pao": {
+          "name": "Pão",
+          "price": "0,70€"
+        },
+        "saladaMista": {
+          "name": "Salada mista",
+          "price": "2,20€"
+        },
+        "arroz": {
+          "name": "Arroz",
+          "price": "2,00€"
+        },
+        "batataFrita": {
+          "name": "Batata frita",
+          "price": "2,50€"
+        },
+        "batataDoce": {
+          "name": "Batata doce",
+          "price": "3,00€"
+        },
+        "feijaoPreto": {
+          "name": "Feijão preto",
+          "price": "3,00€"
+        },
+        "ovo": {
+          "name": "Ovo",
+          "price": "1,20€"
+        },
+        "bacon": {
+          "name": "Bacon",
+          "price": "1,50€"
+        },
+        "boloLevedo": {
+          "name": "Bolo lêvedo",
+          "price": "0,80€"
+        },
+        "boloLevedoManteiga": {
+          "name": "Bolo lêvedo com manteiga",
+          "price": "1,00€"
+        },
+        "extraMolhoCogumelos": {
+          "name": "Extra molho cogumelos",
+          "price": "0,50€"
+        },
+        "extraMolhoManga": {
+          "name": "Extra molho manga",
+          "price": "0,50€"
+        },
+        "extraMaioneseAlho": {
+          "name": "Extra maionese alho",
+          "price": "0,50€"
+        },
+        "extraMolhoPimenta": {
+          "name": "Extra molho pimenta",
+          "price": "0,50€"
+        },
+        "extraSaladaCouve": {
+          "name": "Extra salada couve",
+          "price": "0,50€"
+        },
+        "extraMolhoBitoque": {
+          "name": "Extra molho de bitoque",
+          "price": "0,50€"
+        },
+        "extraManteigaAlho": {
+          "name": "Extra manteiga de alho",
+          "price": "0,50€"
+        },
+        "legumesSalteados": {
+          "name": "Legumes salteados",
+          "price": "2,50€"
+        },
+        "sacoTakeAway": {
+          "name": "Saco take away",
+          "price": "0,50€"
+        },
+        "caixaTakeAway": {
+          "name": "Caixa take away",
+          "price": "0,30€"
+        },
+        "extraCarneHamburger": {
+          "name": "Extra carne hambúrguer",
+          "price": "6,00€"
+        },
+        "extraFrango": {
+          "name": "Extra frango",
+          "price": "6,00€"
+        },
+        "extraLula": {
+          "name": "Extra lula",
+          "price": "3,00€"
+        },
+        "extraMioloCamarao": {
+          "name": "Extra miolo camarão",
+          "price": "3,00€"
+        },
+        "extraCamarao": {
+          "name": "Extra camarão",
+          "price": "1,20€"
+        },
+        "extraSecretos": {
+          "name": "Extra secretos",
+          "price": "6,50€"
+        },
+        "extraCarneMedalhao": {
+          "name": "Extra carne medalhão",
+          "price": "6,00€"
+        },
+        "extraAnanas": {
+          "name": "Extra ananás",
+          "price": "1,20€"
+        },
+        "arrozDoce": {
+          "name": "Arroz doce",
+          "price": "3,00€"
+        },
+        "deliciaCafe": {
+          "name": "Delícia de café",
+          "price": "3,50€"
+        },
+        "mousseChocolate": {
+          "name": "Mousse de chocolate",
+          "price": "3,50€"
+        },
+        "babaCamelo": {
+          "name": "Baba de camelo",
+          "price": "3,50€"
+        },
+        "banofee": {
+          "name": "Banoffee",
+          "price": "3,50€"
+        },
+        "copoFruta": {
+          "name": "Copo de fruta",
+          "price": "2,50€"
+        },
+        "macaAssada": {
+          "name": "Maçã assada",
+          "price": "2,50€"
+        },
+        "sobremesaChef": {
+          "name": "Sobremesa do chef",
+          "price": "3,50€"
+        },
+        "sobremesaSimples": {
+          "name": "Sobremesa simples",
+          "price": "2,50€"
+        },
+        "gelatina": {
+          "name": "Gelatina",
+          "price": "2,00€"
+        },
+        "imperial025": {
+          "name": "Imperial 0,25cl",
+          "price": "1,70€"
+        },
+        "caneca50": {
+          "name": "Caneca 50cl",
+          "price": "2,70€"
+        },
+        "shandy": {
+          "name": "Shandy",
+          "price": "1,70€"
+        },
+        "canecaShandy": {
+          "name": "Caneca shandy",
+          "price": "2,70€"
+        },
+        "cervejaGastronomica": {
+          "name": "Cerveja gastronómica 0,25cl",
+          "price": "2,00€"
+        },
+        "cervejaSemAlcool": {
+          "name": "Cerveja sem álcool 0,25cl",
+          "price": "1,80€"
+        },
+        "copoVinhoTinto": {
+          "name": "Copo vinho tinto",
+          "price": "2,20€"
+        },
+        "copoVinhoBranco": {
+          "name": "Copo vinho branco",
+          "price": "2,20€"
+        },
+        "copoVinhoRose": {
+          "name": "Copo vinho rosé",
+          "price": "2,20€"
+        },
+        "garrafaVinhoTinto": {
+          "name": "Garrafa vinho tinto",
+          "price": "8,00€"
+        },
+        "garrafaVinhoBranco": {
+          "name": "Garrafa vinho branco",
+          "price": "8,00€"
+        },
+        "garrafaVinhoRose": {
+          "name": "Garrafa vinho rosé",
+          "price": "8,00€"
+        },
+        "meiaGarrafaVinhoTinto": {
+          "name": "½ garrafa vinho tinto",
+          "price": "5,00€"
+        },
+        "meiaGarrafaVinhoBranco": {
+          "name": "½ garrafa vinho branco",
+          "price": "5,00€"
+        },
+        "pepsi30": {
+          "name": "Pepsi 30cl",
+          "price": "1,70€"
+        },
+        "pepsiMax30": {
+          "name": "Pepsi Max 30cl",
+          "price": "1,70€"
+        },
+        "sevenUp30": {
+          "name": "7up 30cl",
+          "price": "1,70€"
+        },
+        "icetea30": {
+          "name": "Ice tea 30cl",
+          "price": "1,70€"
+        },
+        "sumolLaranja30": {
+          "name": "Sumol laranja 30cl",
+          "price": "1,70€"
+        },
+        "agua033": {
+          "name": "Água 0,33cl",
+          "price": "1,50€"
+        },
+        "aguaComGas": {
+          "name": "Água com gás",
+          "price": "1,60€"
+        },
+        "aguaSabores": {
+          "name": "Água com sabores",
+          "price": "1,70€"
+        },
+        "somersby020": {
+          "name": "Somersby 0,20cl",
+          "price": "1,70€"
+        },
+        "sumoNaturalLaranja": {
+          "name": "Sumo natural de laranja",
+          "price": "2,50€"
+        },
+        "sumoDoDia": {
+          "name": "Sumo do dia",
+          "price": "2,50€"
+        },
+        "extraCanecaMenu": {
+          "name": "Extra caneca menu",
+          "price": "1,30€"
+        },
+        "extraCanecaShandyMenu": {
+          "name": "Extra caneca shandy menu",
+          "price": "1,30€"
+        },
+        "extraSumoDoDiaMenu": {
+          "name": "Extra sumo do dia menu",
+          "price": "1,40€"
+        },
+        "extraSumoLaranjaMenu": {
+          "name": "Extra sumo laranja menu",
+          "price": "1,40€"
+        },
+        "extraGarrafaVinhoTintoPeqMenu": {
+          "name": "Extra garrafa v. tinto peq. menu",
+          "price": "3,90€"
+        },
+        "extraGarrafaVinhoBrancoPeqMenu": {
+          "name": "Extra garrafa vinho branco peq. menu",
+          "price": "3,90€"
+        },
+        "jarroSangriaTinto": {
+          "name": "Jarro sangria tinto",
+          "price": "10,50€"
+        },
+        "jarroSangriaBranca": {
+          "name": "Jarro sangria branca",
+          "price": "10,50€"
+        },
+        "cafe": {
+          "name": "Café",
+          "price": "1,00€"
+        },
+        "descafeinado": {
+          "name": "Descafeinado",
+          "price": "1,00€"
+        }
       }
     },
     "pizzaLab": {
       "categories": {
         "pizzas": "Pizzas",
         "entradas": "Entradas",
-        "bebidas": "Bebidas",
-        "sobremesa": "Sobremesas"
+        "sobremesa": "Sobremesas",
+        "extras": "Opções extra",
+        "complementos": "Complementos"
       },
       "items": {
-        "margherita": { "name": "Margherita", "price": "9,50€" },
-        "pepperoni": { "name": "Pepperoni", "price": "11,50€" },
-        "quattroFormaggi": { "name": "Quattro Formaggi", "price": "12,90€" },
-        "diavola": { "name": "Diavola", "price": "11,90€" },
-        "vegetariana": { "name": "Vegetariana", "price": "10,90€" },
-        "prosciuttoRucola": { "name": "Prosciutto e Rúcula", "price": "13,50€" },
-        "paoAlho": { "name": "Pão de alho", "price": "4,50€" },
-        "bruschetta": { "name": "Bruschetta", "price": "5,90€" },
-        "saladaMista": { "name": "Salada mista", "price": "6,50€" },
-        "agua": { "name": "Água 50cl", "price": "1,80€" },
-        "refrigerante": { "name": "Refrigerante", "price": "2,50€" },
-        "sumoLaranja": { "name": "Sumo de laranja", "price": "3,50€" },
-        "cerveja": { "name": "Cerveja 33cl", "price": "3,00€" },
-        "tiramisu": { "name": "Tiramisú", "price": "5,50€" },
-        "gelado": { "name": "Gelado (2 bolas)", "price": "4,00€" },
-        "brownieChocolate": { "name": "Brownie de chocolate", "price": "5,90€" }
+        "diavola": {
+          "name": "Pizza Diavola",
+          "price": "10,90€",
+          "description": "Molho tomate, mozarela, salame picante, rúcula"
+        },
+        "peperoni": {
+          "name": "Pizza Peperoni",
+          "price": "11,90€",
+          "description": "Molho de tomate, mozarela, peperoni, cogumelos, orégãos"
+        },
+        "margaritta": {
+          "name": "Pizza Margaritta",
+          "price": "9,90€",
+          "description": "Molho de tomate, mozarela, manjericão"
+        },
+        "tropical": {
+          "name": "Pizza Tropical",
+          "price": "12,90€",
+          "description": "Molho de tomate, mozarela, cogumelos, fiambre, cebola, ananás, orégãos"
+        },
+        "pizzaLab": {
+          "name": "Pizza Lab",
+          "price": "12,90€",
+          "description": "Molho de tomate, mozarela fumada, bacon, frango, cebola, tomate cereja, rúcula, azeite de trufa"
+        },
+        "rustica": {
+          "name": "Pizza Rustica",
+          "price": "12,50€",
+          "description": "Molho tomate, mozarela, cogumelos, fiambre, azeitonas, manjericão"
+        },
+        "quatroQueijos": {
+          "name": "Pizza 4 queijos",
+          "price": "12,50€",
+          "description": "Molho tomate, mozarela, cheddar, gorgonzola, pecorino"
+        },
+        "camponesa": {
+          "name": "Pizza Camponesa",
+          "price": "11,90€",
+          "description": "Molho tomate, mozarela, cebola, legumes assados, rúcula"
+        },
+        "funghi": {
+          "name": "Pizza Funghi",
+          "price": "11,50€",
+          "description": "Molho tomate, mozarela, cogumelos, azeite de trufa, orégãos"
+        },
+        "primavera": {
+          "name": "Pizza Primavera",
+          "price": "11,90€",
+          "description": "Molho tomate, mozarela, cebola, cogumelos, espargos, tomate cereja, azeitonas"
+        },
+        "atlantica": {
+          "name": "Pizza Atlântica",
+          "price": "12,50€",
+          "description": "Molho de tomate, mozarela, atum, azeitonas, cebola, orégãos"
+        },
+        "sevilhana": {
+          "name": "Pizza Sevilhana",
+          "price": "11,90€",
+          "description": "Molho de tomate, mozarela, atum, bacon, orégãos"
+        },
+        "carbonara": {
+          "name": "Pizza Carbonara",
+          "price": "11,90€",
+          "description": "Molho de natas, mozarela, pecorino, bacon, orégãos"
+        },
+        "maresia": {
+          "name": "Pizza Maresia",
+          "price": "13,50€",
+          "description": "Molho de tomate, mozarela, atum, camarão, ananás, orégãos"
+        },
+        "algarvia": {
+          "name": "Pizza Algarvia",
+          "price": "12,90€",
+          "description": "Molho tomate, mozarela, cogumelos, fiambre, pimentos, ovo, orégãos"
+        },
+        "margaritaPremium": {
+          "name": "Pizza Margarita Premium",
+          "price": "11,90€",
+          "description": "Molho de tomate, mozarela fumada, manjericão"
+        },
+        "paoAlhoSimples": {
+          "name": "Pão de alho simples",
+          "price": "4,90€"
+        },
+        "paoAlhoQueijo": {
+          "name": "Pão de alho de queijo",
+          "price": "5,50€"
+        },
+        "paoAlhoQueijoPeperoni": {
+          "name": "Pão de alho de queijo e pepperoni",
+          "price": "6,50€"
+        },
+        "pizzaDoceAvela": {
+          "name": "Creme d'avelã",
+          "price": "4,90€"
+        },
+        "pizzaDoceAvelaFruta": {
+          "name": "Creme d'avelã e frutas",
+          "price": "5,50€"
+        },
+        "queijoVegan": {
+          "name": "Queijo vegan / sem lactose",
+          "price": "2,00€",
+          "description": "Troca de queijo em qualquer pizza (+2,00€)"
+        },
+        "massaSemGluten": {
+          "name": "Massa sem glúten (30 cm)",
+          "price": "3,00€",
+          "description": "Troca de massa em pizzas grandes (+3,00€)"
+        },
+        "sopaDoDia": {
+          "name": "Sopa do dia",
+          "price": "2,50€"
+        },
+        "batatasFritasAlho": {
+          "name": "Batatas fritas com maionese de alho",
+          "price": "2,50€"
+        },
+        "saladaMista": {
+          "name": "Salada mista",
+          "price": "2,50€"
+        },
+        "asinhasFrangoBbq": {
+          "name": "Asinhas de frango com molho barbecue",
+          "price": "7,00€"
+        },
+        "camaraoAlho": {
+          "name": "Camarão com alho",
+          "price": "9,90€"
+        },
+        "pizzaDoceChocolateAmendoas": {
+          "name": "Chocolate negro e amêndoas",
+          "price": "5,50€"
+        }
       }
     }
   },
@@ -171,31 +668,50 @@
   },
   "rewards": {
     "title": "Recompensas",
-    "freeOffers": "Ofertas Grátis!",
+    "freeOffers": "Vales em dinheiro",
+    "moneyVouchers": "Vales em dinheiro",
+    "moneyVouchersHint": "Vales com valor fixo. Ao resgatar, gasta esses pontos e recebe um QR para mostrar no balcão. Depois de resgatar um, espere 24 horas para outro.",
+    "earnRate": "Acumulação: 1€ gasto = 10 pontos",
+    "spendHint": "Importante: ao resgatar um vale, perde o equivalente em pontos do seu saldo.",
+    "cooldownTitle": "Aguarde 24 horas",
+    "cooldownBody": "Já resgatou um vale em dinheiro recentemente. Pode resgatar outro depois de {{until}}.",
+    "cooldownBanner": "Vales em dinheiro bloqueados até {{until}} (24h entre resgates).",
+    "cooldownShort": "Disponível em 24h",
+    "noStackTitle": "Use primeiro o seu vale",
+    "noStackBody": "Já tem um vale por usar. Mostre-o no balcão antes de resgatar outro.",
+    "noStackBanner": "Já tem um vale por usar — utilize-o antes de resgatar outro.",
+    "noStackShort": "Use o vale atual",
     "ptsToMilestone": "Faltam apenas {{count}} pontos para {{milestone}}!",
-    "allMilestones": "Parabéns! Já atingiu todas as metas!",
-    "exclusiveOffers": "Ofertas Exclusivas",
-    "tierCoffee": "Café Grátis",
-    "tierDessert": "Sobremesa Grátis",
-    "tierMeal": "Refeição Grátis",
+    "allMilestones": "Parabéns! Já desbloqueou todos os vales!",
+    "exclusiveOffers": "Resgatar vales",
+    "tierCoffee": "Vale 5€",
+    "tierDessert": "Vale 10€",
+    "tierMeal": "Vale 20€",
+    "tier5": "Vale 5€",
+    "tier10": "Vale 10€",
+    "tier20": "Vale 20€",
+    "tier30": "Vale 30€",
     "insufficientPoints": "Pontos insuficientes",
     "needPoints": "Precisa de {{cost}} pontos para resgatar \"{{title}}\". Tem apenas {{balance}}.",
-    "claimTitle": "Resgatar oferta",
+    "claimTitle": "Resgatar vale?",
     "claimConfirm": "Resgatar \"{{title}}\" por {{cost}} pontos?",
-    "claim": "Resgatar",
+    "claimConfirmSpend": "Resgatar \"{{title}}\"?\n\nIsto gasta {{cost}} pontos do seu saldo. Recebe um código QR para mostrar no balcão.",
+    "claim": "Resgatar e gastar pontos",
     "claimSuccess": "\"{{title}}\" adicionado aos seus vouchers.",
+    "claimSuccessQr": "\"{{title}}\" está pronto. Foram gastos {{cost}} pontos. Abra Os meus vouchers e mostre o QR no balcão.",
     "viewVouchers": "Ver vouchers",
     "myVouchers": "Os meus vouchers",
-    "myVouchersHint": "Apresente este QR no balcão para usar a sua recompensa.",
-    "myVouchersEmpty": "Ainda não tem vouchers. Resgate uma oferta no catálogo.",
+    "myVouchersHint": "Mostre este QR no balcão para usar o seu vale.",
+    "myVouchersEmpty": "Ainda não tem vouchers. Resgate um vale em dinheiro ou uma promoção na página inicial.",
     "backToCatalog": "Voltar ao catálogo",
     "pastVouchers": "Utilizados / expirados",
-    "expires": "Válido até {{date}}",
+    "expires": "Expira {{date}}",
     "voucherStateActive": "Ativo",
     "voucherStatePending": "Pendente",
     "voucherStateUsed": "Utilizado",
     "voucherStateExpired": "Expirado",
     "pointsCost": "{{count}} Pontos",
+    "redeemForPoints": "Resgatar · {{count}} pts",
     "ptsShort": "{{count}} pts"
   },
   "profile": {
@@ -206,6 +722,13 @@
     "terms": "Termos e Condições",
     "privacy": "Política de Privacidade",
     "signOut": "Terminar sessão",
+    "deleteAccount": "Eliminar conta",
+    "deleteAccountTitle": "Eliminar conta?",
+    "deleteAccountBody": "Isto elimina permanentemente o seu perfil de fidelização na app, incluindo os dados da conta. Esta ação não pode ser anulada.",
+    "deleteAccountFinalTitle": "Confirmar eliminação",
+    "deleteAccountFinalBody": "Tem a certeza de que pretende eliminar permanentemente a sua conta?",
+    "deleteAccountConfirm": "Eliminar",
+    "deleteAccountError": "Não foi possível eliminar a conta. Tente novamente ou contacte o suporte.",
     "editTitle": "Editar Perfil",
     "phone": "Telemóvel (opcional)",
     "phonePlaceholder": "+351 900 000 000",
@@ -217,15 +740,80 @@
     "saveError": "Não foi possível guardar o perfil."
   },
   "staff": {
-    "title": "Modo Staff",
-    "pinPrompt": "Introduza o PIN de 4 dígitos",
-    "wrongPin": "PIN incorreto",
-    "wrongPinHint": "Tente novamente ou contacte o responsável.",
+    "title": "Área Admin",
+    "adminRequired": "É necessária uma conta de administrador.",
+    "hubSubtitle": "Valide vouchers, anule pontos de vendas canceladas ou gerencie ofertas.",
+    "removeTitle": "Anular pontos",
+    "removeHint": "Leia o QR Ganhar do cliente e anule uma compra recente, ou introduza os pontos manualmente. (Nota: se a fatura for anulada no WinRest, o LKM já retira os pontos automaticamente — use isto só se precisar de correção manual.)",
+    "removeCameraPermission": "É necessária a câmara para ler o QR Ganhar do cliente.",
+    "removeCardPlaceholder": "Código do cartão LKM",
+    "removeLookup": "Procurar cliente",
+    "removeBalance": "Saldo disponível: {{count}} pts",
+    "removeRecentTitle": "Compras recentes (tocar para anular)",
+    "removeNoTx": "Sem compras com pontos recentes.",
+    "removeAlready": "Já anulada",
+    "removeManualTitle": "Ou anular pontos manualmente",
+    "removePointsPlaceholder": "Pontos a remover",
+    "removeReasonPlaceholder": "Motivo (opcional)",
+    "removeManualBtn": "Anular pontos",
+    "removeAnother": "Outro cliente",
+    "removeConfirmTitle": "Anular pontos?",
+    "removeConfirmBody": "Remover {{label}} de {{name}}?",
+    "removeConfirmAction": "Anular",
+    "removeSuccess": "Removidos {{count}} pts. Novo saldo: {{balance}}.",
+    "removeInvalidPoints": "Introduza um número de pontos válido.",
+    "removeManualLabel": "{{count}} pts (manual)",
+    "removeTxLabel": "{{count}} pts · {{restaurant}}",
+    "manageOffers": "Criar ofertas",
+    "manageOffersHint": "Escolha um item real do menu e Grátis ou 20%. Os pontos calculam-se sozinhos (1€ = 10 pts).",
+    "manageMenu": "Editar menu",
+    "manageMenuHint": "Adicione, altere preços ou remova itens nas categorias existentes.",
+    "pickCategory": "Categoria",
+    "menuNewName": "Nome do item",
+    "menuNewPrice": "Preço (€)",
+    "menuAdd": "Adicionar item",
+    "menuInvalid": "Introduza um nome e um preço válido (≥ 0).",
+    "menuRemoveTitle": "Remover item?",
+    "menuRemoveBody": "Remover \"{{name}}\" do menu? (pode voltar a adicioná-lo depois)",
+    "menuRemove": "Remover",
+    "kindPromo": "Promoção menu",
+    "kindMoney": "Vale em dinheiro",
+    "pickRestaurant": "Restaurante",
+    "pickBenefit": "Tipo de oferta",
+    "benefitFree": "Item grátis",
+    "benefitOff20": "20% de desconto",
+    "benefitHalf": "20% de desconto",
+    "pickMenuItem": "Item do menu",
+    "previewPos": "Desconto POS: {{amount}}€",
+    "previewPoints": "Custo em pontos: {{count}}",
+    "previewMath": "Automático: preço × 10 pts/€ (ou 20% do preço). O staff aplica exactamente este item/desconto.",
+    "offerNeedItem": "Seleccione um item do menu para a promoção.",
+    "offerTitle": "Título",
+    "offerTitlePlaceholder": "ex.: Margherita grátis",
+    "offerDescription": "Descrição",
+    "offerDescriptionPlaceholder": "Onde é válido / como usar",
+    "daysValid": "Válido por (dias)",
+    "euroValue": "Valor do vale (€)",
+    "posDiscount": "Desconto no POS (€)",
+    "posDiscountHint": "Valor fixo que o staff aplica na caixa.",
+    "pointsCost": "Custo em pontos (gastos no resgate)",
+    "pointsSpendNote": "Quando o cliente resgata, estes pontos são debitados do saldo.",
+    "createOffer": "Criar oferta",
+    "offerCreated": "Oferta criada.",
+    "offerInvalid": "Introduza um custo em pontos e um desconto fixo no POS maior que 0.",
+    "offerInvalidMoney": "Os vales em dinheiro precisam de um valor em euros maior que 0.",
+    "offerNeedTitle": "As promoções precisam de um título.",
+    "existingOffers": "Ofertas existentes",
+    "deactivateTitle": "Desativar oferta?",
+    "deactivateBody": "Ocultar \"{{title}}\" do catálogo de clientes?",
+    "deactivate": "Desativar",
+    "inactive": "Inativa",
     "validateTitle": "Validar voucher",
-    "validateHint": "Leia ou introduza o código do voucher apresentado pelo cliente. Aplique o desconto manualmente no POS se válido.",
+    "validateHint": "Leia o QR do cliente. Sirva exactamente o item / aplique exactamente o € mostrado.",
+    "applyOnPos": "Aplicar {{amount}}€ no POS",
     "voucherPlaceholder": "Código do voucher",
     "validateBtn": "Validar",
-    "resultValid": "Voucher válido. Aplique o desconto no POS e entregue a oferta.",
+    "resultValid": "Válido. Aplique exactamente o que aparece em cima na caixa.",
     "resultUsed": "Este voucher já foi utilizado.",
     "resultExpired": "Este voucher expirou.",
     "resultNotActive": "Este voucher ainda não está ativo.",
@@ -248,38 +836,51 @@
   "faq": {
     "title": "Ajuda e Suporte",
     "q1": "Como acumulo pontos?",
-    "a1": "Após a refeição, apresente o seu código QR na secção Ganhar ou no talão no restaurante. Os pontos são creditados na sua carteira.",
+    "a1": "Após a refeição, apresente o seu código QR na secção Ganhar no restaurante. Ganha 10 pontos por cada 1€ gasto. Os pontos são creditados na sua carteira.",
     "q2": "O que é a secção Ganhar?",
     "a2": "Em Ganhar encontra o seu código de cliente. Mostre-o no restaurante para associar a compra à sua conta de fidelização.",
-    "q3": "Como resgato uma oferta?",
-    "a3": "Em Recompensas, escolha uma oferta com pontos suficientes e toque em Resgatar. O voucher ficará disponível na sua carteira.",
+    "q3": "Como resgato um vale?",
+    "a3": "Em Recompensas, escolha um vale em dinheiro com pontos suficientes (ex.: 500 pts = 5€) e toque em Resgatar. Mostre o QR do vale no balcão na próxima visita.",
     "q4": "Os pontos expiram?",
     "a4": "As regras de validade dependem do programa. Consulte as condições no restaurante ou contacte o suporte.",
     "q5": "Posso usar pontos em todos os restaurantes?",
-    "a5": "O saldo é partilhado entre os restaurantes do grupo JD. Algumas ofertas podem ser válidas apenas num local.",
+    "a5": "O saldo é partilhado entre os restaurantes do grupo JD. Os vales em dinheiro são válidos nos locais participantes.",
     "q6": "Como altero os meus dados?",
     "a6": "Em Conta → Editar Perfil pode atualizar o nome, telemóvel e idioma da aplicação.",
     "q7": "Esqueci-me da palavra-passe",
-    "a7": "Na página de login, utilize a opção de recuperação de palavra-passe por email (quando disponível) ou contacte o suporte.",
+    "a7": "Na página de login, toque em «Esqueceu-se da palavra-passe?» e introduza o email para receber um link de reposição, ou contacte o suporte.",
     "q8": "Como protegem os meus dados?",
-    "a8": "Consulte a Política de Privacidade em Conta. Os dados são tratados em conformidade com a legislação aplicável."
+    "a8": "Consulte a Política de Privacidade em Conta. Os dados são tratados em conformidade com a legislação aplicável.",
+    "q9": "Como elimino a minha conta?",
+    "a9": "Em Conta → Eliminar conta. Isto remove permanentemente o perfil na app. Também pode contactar grupopie@grupopie.com."
   },
   "legal": {
     "termsTitle": "Termos e Condições",
     "privacyTitle": "Política de Privacidade",
-    "lastUpdated": "Última atualização: maio de 2026",
-    "placeholderIntro": "Este texto é um placeholder até recebermos a versão final do cliente.",
+    "lastUpdated": "Última atualização: julho de 2026",
+    "intro": "Estes documentos explicam o funcionamento da app de fidelização Chef Domingos e o tratamento dos seus dados pessoais. Para questões, contacte grupopie@grupopie.com.",
+    "openFullVersion": "Abrir a versão completa na web",
     "termsS1Title": "1. Aceitação",
-    "termsS1": "Ao utilizar a aplicação JD Chef Domingos, aceita estes termos. Se não concordar, não utilize a aplicação.",
+    "termsS1": "Ao criar uma conta ou utilizar a app Chef Domingos, aceita estes Termos. Se não concordar, não utilize a aplicação.",
     "termsS2Title": "2. Programa de fidelização",
-    "termsS2": "Os pontos e recompensas são geridos pelo parceiro de fidelização. O saldo e as ofertas podem ser alterados conforme as regras do programa.",
+    "termsS2": "A app permite acumular e resgatar pontos e vouchers nos restaurantes participantes. Pontos, catálogos e regras são operados com o nosso parceiro tecnológico de fidelização (LKM). Saldos e ofertas podem alterar-se conforme as regras do programa.",
     "termsS3Title": "3. Conta",
-    "termsS3": "É responsável pela confidencialidade das credenciais da sua conta e por toda a atividade realizada com a mesma.",
+    "termsS3": "Deve fornecer dados de registo corretos e manter a palavra-passe confidencial. É responsável pela atividade na sua conta. Pode eliminar a conta a qualquer momento em Conta → Eliminar conta.",
+    "termsS4Title": "4. Utilização adequada",
+    "termsS4": "Não deve fazer uso indevido da app, tentar manipular pontos ou vouchers, nem interferir com a operação dos restaurantes ou com os nossos sistemas.",
+    "termsS5Title": "5. Contacto",
+    "termsS5": "Para apoio relacionado com a app ou o programa de fidelização, contacte grupopie@grupopie.com.",
     "privacyS1Title": "1. Responsável",
-    "privacyS1": "O responsável pelo tratamento dos dados pessoais é o Grupo PIE / rede de restaurantes JD, contactável em grupopie@grupopie.com.",
-    "privacyS2Title": "2. Dados recolhidos",
-    "privacyS2": "Recolhemos dados de conta (nome, email, telefone opcional), histórico de pontos e preferências da aplicação.",
-    "privacyS3Title": "3. Finalidade",
-    "privacyS3": "Os dados são utilizados para gerir o programa de fidelização, comunicações autorizadas e melhoria do serviço."
+    "privacyS1": "O responsável pelo tratamento dos dados desta app é o Grupo PIE / rede de restaurantes JD (Chef Domingos), contactável em grupopie@grupopie.com.",
+    "privacyS2Title": "2. Dados que recolhemos",
+    "privacyS2": "Tratamos dados de conta (nome, email, telemóvel opcional), identificadores de autenticação, idioma preferido, preferências de notificação, identificadores do cartão de fidelização, histórico de pontos e transações, e vouchers resgatados na app.",
+    "privacyS3Title": "3. Finalidades e bases legais",
+    "privacyS3": "Utilizamos estes dados para criar e gerir a conta, operar o programa de fidelização (ganhar/resgatar), mostrar saldo e histórico, validar vouchers com o staff, enviar comunicações a que tenha aderido e melhorar o serviço. O tratamento baseia-se na execução do contrato, interesses legítimos na operação do programa e consentimento quando exigido (por exemplo marketing).",
+    "privacyS4Title": "4. Partilha",
+    "privacyS4": "Partilhamos os dados necessários com o nosso fornecedor de infraestrutura (Supabase) e com o parceiro de fidelização (LKM) para registar o cartão, autenticar chamadas à API e processar pontos/vouchers. O staff do restaurante pode ver códigos de voucher ao validar ofertas. Não vendemos os seus dados pessoais.",
+    "privacyS5Title": "5. Conservação e segurança",
+    "privacyS5": "Mantemos os dados de conta e fidelização enquanto a conta estiver ativa e por um período limitado depois, quando necessário por razões legais, contabilísticas ou de prevenção de fraude. Utilizamos medidas padrão da indústria, como transporte encriptado e controlos de acesso. Nenhum método de transmissão é 100% seguro.",
+    "privacyS6Title": "6. Os seus direitos",
+    "privacyS6": "Nos termos da lei aplicável (incluindo o RGPD), pode solicitar acesso, retificação, apagamento, limitação, portabilidade ou oposição. Pode atualizar o perfil na app e eliminar a conta em Conta → Eliminar conta. Também pode contactar grupopie@grupopie.com ou a autoridade de controlo competente."
   }
 }

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -22,10 +23,8 @@ import { usePointsStore } from '../../store/pointsStore';
 import { useVouchersStore } from '../../store/vouchersStore';
 import JDLogo from '../../components/JDLogo';
 import {
-  getFallbackCatalog,
   getFallbackOfferImage,
   getOfferCardTheme,
-  localizeCatalogItem,
 } from '../../lib/offerI18n';
 import type { RestaurantId } from '../../lib/menuI18n';
 
@@ -60,6 +59,7 @@ const RESTAURANTS: {
 export default function HomeScreen() {
   const insets     = useSafeAreaInsets();
   const navigation = useNavigation<HomeNav>();
+  const rootNav = useNavigation<any>();
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const { profile, fetchProfile } = useUserStore();
@@ -67,7 +67,15 @@ export default function HomeScreen() {
   const userName = profile?.name || metaName || '—';
 
   const { balance, loading: ptsLoading, error: ptsError, fetch: fetchPoints } = usePointsStore();
-  const { catalog, catalogLoading, fetchCatalog } = useVouchersStore();
+  const {
+    promoCatalog,
+    promoLoading,
+    fetchPromoCatalog,
+    fetchMyVouchers,
+    claim,
+    claiming,
+    hasActiveVoucher,
+  } = useVouchersStore();
 
   useEffect(() => {
     if (user?.id) fetchProfile(user.id);
@@ -77,9 +85,55 @@ export default function HomeScreen() {
     useCallback(() => {
       if (!user?.id) return;
       fetchPoints();
-      fetchCatalog();
+      fetchPromoCatalog();
+      fetchMyVouchers();
     }, [user?.id]),
   );
+
+  const handlePromoClaim = (id: string, title: string, cost: number) => {
+    if (hasActiveVoucher) {
+      Alert.alert(t('rewards.noStackTitle'), t('rewards.noStackBody'));
+      return;
+    }
+    if (balance < cost) {
+      Alert.alert(
+        t('rewards.insufficientPoints'),
+        t('rewards.needPoints', { cost, title, balance }),
+      );
+      return;
+    }
+    Alert.alert(
+      t('rewards.claimTitle'),
+      t('rewards.claimConfirmSpend', { title, cost }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('rewards.claim'),
+          onPress: async () => {
+            try {
+              await claim(id);
+              await Promise.all([fetchPoints(), fetchPromoCatalog(), fetchMyVouchers()]);
+              Alert.alert(t('common.success'), t('rewards.claimSuccessQr', { title, cost }), [
+                {
+                  text: t('rewards.viewVouchers'),
+                  onPress: () => rootNav.navigate('Recompensas', { screen: 'MyVouchers' }),
+                },
+                { text: t('common.ok'), style: 'cancel' },
+              ]);
+            } catch (err) {
+              const msg = (err as Error).message;
+              if (msg === 'ACTIVE_VOUCHER') {
+                Alert.alert(t('rewards.noStackTitle'), t('rewards.noStackBody'));
+                await fetchMyVouchers();
+                return;
+              }
+              Alert.alert(t('common.error'), msg);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={styles.root}>
@@ -108,13 +162,19 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Exclusive Offers */}
+        {/* Admin timed promos */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('home.exclusiveOffers')}</Text>
+          <Text style={styles.sectionHint}>{t('home.promoHint')}</Text>
+          {hasActiveVoucher ? (
+            <Text style={styles.sectionHint}>{t('rewards.noStackBanner')}</Text>
+          ) : null}
         </View>
 
-        {catalogLoading ? (
+        {promoLoading ? (
           <ActivityIndicator color={Colors.gold} style={{ marginVertical: 16 }} />
+        ) : promoCatalog.length === 0 ? (
+          <Text style={styles.emptyPromos}>{t('home.noPromos')}</Text>
         ) : (
           <ScrollView
             horizontal
@@ -122,11 +182,16 @@ export default function HomeScreen() {
             contentContainerStyle={styles.voucherList}
             style={styles.voucherScroll}
           >
-            {(catalog.length > 0 ? catalog : getFallbackCatalog(t)).map((raw) => {
-              const v = localizeCatalogItem(raw, t);
+            {promoCatalog.map((v) => {
               const isLight = getOfferCardTheme(v) === 'light';
               return (
-              <View key={v.id} style={[styles.voucher, isLight && styles.voucherLight]}>
+              <TouchableOpacity
+                key={v.id}
+                style={[styles.voucher, isLight && styles.voucherLight, hasActiveVoucher && { opacity: 0.65 }]}
+                activeOpacity={0.9}
+                disabled={claiming || hasActiveVoucher}
+                onPress={() => handlePromoClaim(v.id, v.title, v.pointsCost)}
+              >
                 <Image
                   source={v.imageUrl ? { uri: v.imageUrl } : getFallbackOfferImage(v)}
                   style={[styles.voucherBg, isLight ? styles.voucherBgLight : styles.voucherBgDark]}
@@ -147,14 +212,16 @@ export default function HomeScreen() {
                     {v.restaurantName}
                   </Text>
                   <Text style={styles.voucherTitle} numberOfLines={3}>{v.title}</Text>
-                  <Text style={[styles.voucherValid, isLight && styles.voucherValidLight]} numberOfLines={1}>
+                  <Text style={[styles.voucherValid, isLight && styles.voucherValidLight]} numberOfLines={2}>
                     {v.description}
                   </Text>
                   <View style={styles.voucherBtn}>
-                    <Text style={styles.voucherBtnText}>{t('home.pointsCost', { count: v.pointsCost })}</Text>
+                    <Text style={styles.voucherBtnText}>
+                      {t('rewards.redeemForPoints', { count: v.pointsCost })}
+                    </Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
             })}
           </ScrollView>
@@ -209,6 +276,8 @@ const styles = StyleSheet.create({
   pointsError: { fontSize: 12, color: '#b45309', marginTop: 8, textAlign: 'center', paddingHorizontal: 16 },
   section: { marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
+  sectionHint: { fontSize: 12, color: '#757575', marginBottom: 4, lineHeight: 16 },
+  emptyPromos: { fontSize: 13, color: '#888', paddingHorizontal: 4, marginBottom: 12 },
   voucherScroll: { marginHorizontal: -20 },
   voucherList: { paddingHorizontal: 20, gap: 16 },
   voucher: {

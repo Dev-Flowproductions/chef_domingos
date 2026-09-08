@@ -13,6 +13,8 @@ export interface User {
   phone?: string;
   preferred_language?: 'pt' | 'en';
   notification_settings?: Record<string, boolean>;
+  is_admin?: boolean;
+  lkm_card_code?: string | null;
   created_at: string;
 }
 

@@ -9,13 +9,17 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Colors } from '../../lib/theme';
 import { validateStaffVoucher, VoucherValidationStatus } from '../../services/lkm/vouchers';
+import { validateLocalVoucher } from '../../services/lkm/rewardOffers';
+import { hasAdminAccess } from '../../lib/adminAccess';
+import { useAuthStore } from '../../store/authStore';
+import { useUserStore } from '../../store/userStore';
 import type { ProfileStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'StaffValidate'>;
@@ -35,14 +39,30 @@ export default function StaffValidateScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const [permission, requestPermission] = useCameraPermissions();
+  const user = useAuthStore((s) => s.user);
+  const profile = useUserStore((s) => s.profile);
+  const isAdmin = hasAdminAccess({
+    email: user?.email ?? profile?.email,
+    isAdminFlag: profile?.is_admin,
+    appMetadata: (user as { app_metadata?: Record<string, unknown> } | null)?.app_metadata,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAdmin) navigation.goBack();
+    }, [isAdmin, navigation]),
+  );
 
   const [mode, setMode] = useState<'scan' | 'manual'>('scan');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [scanLocked, setScanLocked] = useState(false);
-  const [result, setResult] = useState<{ status: VoucherValidationStatus; title: string } | null>(
-    null,
-  );
+  const [result, setResult] = useState<{
+    status: VoucherValidationStatus;
+    title: string;
+    euroValue?: number;
+    staffInstruction?: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const validate = useCallback(async (rawCode: string) => {
@@ -53,6 +73,17 @@ export default function StaffValidateScreen() {
     setResult(null);
     setScanLocked(true);
     try {
+      const local = await validateLocalVoucher(trimmed);
+      if (local.found) {
+        setResult({
+          status: local.status,
+          title: local.title,
+          euroValue: local.euroValue,
+          staffInstruction: local.staffInstruction,
+        });
+        setCode(trimmed);
+        return;
+      }
       const res = await validateStaffVoucher(trimmed);
       setResult(res);
       setCode(trimmed);
@@ -165,6 +196,14 @@ export default function StaffValidateScreen() {
           <View style={[styles.resultBox, { backgroundColor: statusUi.bg }]}>
             <Ionicons name={statusUi.icon} size={48} color="#fff" />
             <Text style={styles.resultTitle}>{result.title}</Text>
+            {result.status === 'valid' && result.staffInstruction ? (
+              <Text style={styles.resultInstruction}>{result.staffInstruction}</Text>
+            ) : null}
+            {result.status === 'valid' && Number(result.euroValue) > 0 ? (
+              <Text style={styles.resultApply}>
+                {t('staff.applyOnPos', { amount: Number(result.euroValue).toFixed(2) })}
+              </Text>
+            ) : null}
             <Text style={styles.resultMsg}>{t(statusUi.msgKey)}</Text>
             <TouchableOpacity style={styles.resetBtn} onPress={reset}>
               <Text style={styles.resetBtnText}>{t('staff.scanAnother')}</Text>
@@ -245,6 +284,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resultTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginTop: 12, textAlign: 'center' },
+  resultInstruction: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 12,
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 8,
+  },
+  resultApply: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '800',
+    marginTop: 14,
+    textAlign: 'center',
+  },
   resultMsg: { color: 'rgba(255,255,255,0.95)', fontSize: 14, marginTop: 10, textAlign: 'center', lineHeight: 20 },
   resetBtn: {
     marginTop: 20,

@@ -16,3 +16,9 @@ verify_jwt = false
 
 [functions.lkm-scan]
 verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
+
+[functions.reward-offers]
+verify_jwt = false

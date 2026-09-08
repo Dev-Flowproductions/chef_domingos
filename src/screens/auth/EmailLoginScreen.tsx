@@ -23,11 +23,12 @@ export default function EmailLoginScreen() {
   const insets     = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { t } = useTranslation();
-  const { signIn } = useAuthStore();
+  const { signIn, resetPassword } = useAuthStore();
 
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -40,6 +41,22 @@ export default function EmailLoginScreen() {
     if (error) {
       Alert.alert(t('auth.loginError'), error.message ?? t('auth.invalidCredentials'));
     }
+  };
+
+  const handleForgotPassword = async () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      Alert.alert(t('auth.fieldsRequired'), t('auth.fillEmailForReset'));
+      return;
+    }
+    setResetting(true);
+    const { error } = await resetPassword(trimmed);
+    setResetting(false);
+    if (error) {
+      Alert.alert(t('common.error'), error.message);
+      return;
+    }
+    Alert.alert(t('auth.resetSentTitle'), t('auth.resetSentBody'));
   };
 
   return (
@@ -84,6 +101,10 @@ export default function EmailLoginScreen() {
             />
           </View>
 
+          <TouchableOpacity onPress={handleForgotPassword} disabled={resetting} activeOpacity={0.7}>
+            <Text style={styles.forgot}>{resetting ? t('common.loading') : t('auth.forgotPassword')}</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.btn, loading && styles.btnDisabled]}
             onPress={handleLogin}
@@ -127,6 +148,13 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     borderWidth: 1,
     borderColor: '#e0d8cc',
+  },
+  forgot: {
+    color: Colors.gold,
+    fontSize: 14,
+    textAlign: 'right',
+    textDecorationLine: 'underline',
+    marginTop: -8,
   },
   btn: {
     backgroundColor: Colors.gold,
