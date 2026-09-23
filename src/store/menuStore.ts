@@ -118,7 +118,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
       return;
     }
     set({
-      items: data.map((row) => ({
+      items: (data as MenuItemRow[]).map((row) => ({
         ...row,
         restaurant_id: row.restaurant_id as RestaurantId,
         price_euros: Number(row.price_euros),

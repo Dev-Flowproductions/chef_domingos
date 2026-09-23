@@ -13,6 +13,7 @@
       "backgroundColor": "#F8F5F0"
     },
     "ios": {
+      "icon": "./assets/icon.png",
       "supportsTablet": true,
       "bundleIdentifier": "pt.chefdomingos.loyalty",
       "infoPlist": {
