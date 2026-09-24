@@ -11,6 +11,7 @@
     "preview": {
       "distribution": "store",
       "environment": "preview",
+      "autoIncrement": true,
       "android": {
         "buildType": "apk"
       }
@@ -20,6 +21,10 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6810265204"
+      }
+    }
   }
 }

@@ -16,7 +16,7 @@ export default function PizzaCard({ pizza, onPress, onAddToCart }: PizzaCardProp
         source={{ uri: pizza.image_url }}
         style={styles.image}
         contentFit="cover"
-        placeholder={{ uri: 'https://placehold.co/300x200/FFF5F5/E63946?text=Pizza' }}
+        placeholder={require('../assets/icon-refeicao.png')}
       />
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>{pizza.name}</Text>
