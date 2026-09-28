@@ -821,7 +821,7 @@
     "modeScan": "Scanner",
     "modeManual": "Manual",
     "cameraPermission": "Camera access is required to scan the voucher QR code.",
-    "cameraAllow": "Allow camera"
+    "cameraAllow": "Continue"
   },
   "notifications": {
     "title": "Notifications",
