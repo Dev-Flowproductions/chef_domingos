@@ -821,7 +821,7 @@
     "modeScan": "Scanner",
     "modeManual": "Manual",
     "cameraPermission": "É necessária a câmara para ler o QR do voucher.",
-    "cameraAllow": "Permitir câmara"
+    "cameraAllow": "Continuar"
   },
   "notifications": {
     "title": "Notificações",
