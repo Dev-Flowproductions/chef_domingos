@@ -1,8 +1,10 @@
 import type { TFunction } from 'i18next';
 import type { CatalogItem } from '../services/lkm/vouchers';
+import { PROGRESS_VOUCHERS, milestoneLabelKey } from './loyaltyRules';
 
 export type OfferCardTheme = 'light' | 'dark';
 
+/** Fallback only if the API catalog fails — mirrors default seeded offers. */
 const FALLBACK_OFFER_KEYS: Record<
   string,
   {
@@ -12,40 +14,28 @@ const FALLBACK_OFFER_KEYS: Record<
     pointsCost: number;
     theme: OfferCardTheme;
   }
-> = {
-  f1: {
-    title: 'offers.f1.title',
-    description: 'offers.f1.description',
-    restaurantName: 'offers.f1.tag',
-    pointsCost: 100,
-    theme: 'dark',
-  },
-  f2: {
-    title: 'offers.f2.title',
-    description: 'offers.f2.description',
-    restaurantName: 'offers.f2.tag',
-    pointsCost: 200,
-    theme: 'light',
-  },
-  f3: {
-    title: 'offers.f3.title',
-    description: 'offers.f3.description',
-    restaurantName: 'offers.f3.tag',
-    pointsCost: 300,
-    theme: 'dark',
-  },
-};
+> = Object.fromEntries(
+  PROGRESS_VOUCHERS.map((v, i) => [
+    v.id,
+    {
+      title: `offers.${v.id}.title`,
+      description: `offers.${v.id}.description`,
+      restaurantName: `offers.${v.id}.tag`,
+      pointsCost: v.pts,
+      theme: (i % 2 === 0 ? 'dark' : 'light') as OfferCardTheme,
+    },
+  ]),
+);
 
 const FALLBACK_IMAGE_BY_ID: Record<string, number> = {
-  f1: require('../assets/pizza-lab-food.jpg'),
-  f2: require('../assets/portuguese-lab-food.jpg'),
-  f3: require('../assets/pizza-lab-food.jpg'),
+  v5: require('../assets/portuguese-lab-food.jpg'),
+  v10: require('../assets/pizza-lab-food.jpg'),
+  v20: require('../assets/portuguese-lab-food.jpg'),
 };
 
 export function getOfferCardTheme(item: CatalogItem): OfferCardTheme {
   const fallback = FALLBACK_OFFER_KEYS[item.id];
   if (fallback) return fallback.theme;
-
   const haystack = `${item.restaurantName} ${item.description} ${item.title}`.toLowerCase();
   if (haystack.includes('portuguese')) return 'light';
   return 'dark';
@@ -83,8 +73,5 @@ export function localizeCatalogItem(item: CatalogItem, t: TFunction): CatalogIte
 }
 
 export function milestoneLabelForPts(pts: number, t: TFunction): string {
-  if (pts >= 900) return t('rewards.tierMeal');
-  if (pts >= 600) return t('rewards.tierDessert');
-  if (pts >= 300) return t('rewards.tierCoffee');
-  return '';
+  return t(milestoneLabelKey(pts));
 }

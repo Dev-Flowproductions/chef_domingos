@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { USE_MOCK } from './config';
 import { fetchWithTimeout } from './fetchWithTimeout';
 
@@ -29,7 +31,7 @@ const createSupabaseClient = () => {
       fetch: fetchWithTimeout,
     },
     auth: {
-      storage: ExpoSecureStoreAdapter,
+      storage: Platform.OS === 'web' ? AsyncStorage : ExpoSecureStoreAdapter,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,

@@ -14,6 +14,7 @@ import {
   jsonResponse,
   errorResponse,
   LkmApiError,
+  parseLkmPointsBalance,
 } from '../_shared/lkm-client.ts';
 
 // POST /v2/Transactions body is IdStringInput: { id: string }
@@ -61,7 +62,10 @@ Deno.serve(async (req: Request) => {
 
     const pointsEarned = Number(result.Pontos ?? 0);
     // Fetch fresh balance after transaction (LKM scan response doesn't include total balance)
-    const newBalance = await lkmFetch<number>('/v2/Points', { clientToken }).then(Number).catch(() => 0);
+    const newBalance = await lkmFetch<unknown>('/v2/GetPoints', { clientToken })
+      .catch(() => lkmFetch<unknown>('/v2/Points', { clientToken }))
+      .then(parseLkmPointsBalance)
+      .catch(() => 0);
 
     // Cache the transaction locally
     if (pointsEarned > 0) {

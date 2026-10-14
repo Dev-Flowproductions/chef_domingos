@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Como usar a app Chef Domingos</title>
+  <style>
+    :root {
+      --gold: #BF994E;
+      --gold-soft: rgba(191, 153, 78, 0.12);
+      --bg: #F8F5F0;
+      --text: #333;
+      --muted: #666;
+      --card: #fff;
+      --border: #E8E0D5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.55;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px 80px; }
+    header.hero {
+      padding: 36px 0 12px;
+      text-align: center;
+    }
+    header.hero h1 {
+      font-size: 2rem; font-weight: 400; margin: 0 0 8px;
+      color: var(--gold);
+    }
+    header.hero p.lead { margin: 0; color: var(--muted); font-size: 1.1rem; }
+    nav.toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 22px;
+      margin: 28px 0;
+    }
+    nav.toc strong { color: var(--gold); }
+    nav.toc ol { margin: 10px 0 0; padding-left: 22px; }
+    nav.toc a { color: var(--text); }
+    h2 {
+      font-size: 1.55rem; color: var(--gold); font-weight: 400;
+      margin: 48px 0 12px; border-top: 1px solid var(--border); padding-top: 28px;
+    }
+    h3 { font-size: 1.15rem; margin: 28px 0 10px; }
+    p { margin: 0 0 12px; }
+    .note, .warn, .ok, .cred {
+      border-radius: 12px; padding: 14px 16px; margin: 16px 0;
+      border: 1px solid var(--border); background: #fff;
+    }
+    .warn { background: #fff8ee; }
+    .ok { background: #f3faf5; }
+    .cred { background: #fffdf6; }
+    .cred code {
+      font-family: ui-monospace, Consolas, "Courier New", monospace;
+      font-size: 0.98rem;
+    }
+    .grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 18px 0;
+    }
+    .photo {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      height: auto;
+      object-fit: cover;
+      object-position: center;
+      border-radius: 14px;
+      display: block;
+    }
+    .caption { font-size: .9rem; color: var(--muted); margin: 6px 0 0; }
+    table {
+      width: 100%; border-collapse: collapse; background: #fff;
+      border-radius: 12px; overflow: hidden; margin: 16px 0;
+    }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { background: var(--gold-soft); color: var(--text); font-weight: 600; }
+    ol.steps { padding-left: 22px; }
+    ol.steps li { margin: 8px 0; }
+    .shots {
+      display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;
+      margin: 16px 0;
+    }
+    figure.shot {
+      width: 148px; margin: 0;
+    }
+    figure.shot img {
+      width: 100%; display: block;
+      border-radius: 18px;
+      border: 5px solid #1c1c1c;
+      box-shadow: 0 8px 20px rgba(0,0,0,.12);
+      background: #F8F5F0;
+    }
+    figure.shot figcaption {
+      text-align: center;
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 6px;
+      font-family: system-ui, sans-serif;
+    }
+    footer {
+      margin-top: 56px; color: var(--muted); font-size: .9rem; text-align: center;
+    }
+    @media print {
+      body { background: #fff; }
+      .wrap { max-width: none; padding: 0 4mm 8mm; }
+      header.hero { padding-top: 6mm; }
+      .shots, figure.shot, figure.shot img {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      figure.shot { width: 128px; }
+      .grid { grid-template-columns: 1fr 1fr; }
+      .cred, .note, .warn, .ok, table, .grid { break-inside: avoid; }
+      h2 { break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>Chef Domingos</h1>
+      <p class="lead">Guia prático para a equipa: como a app funciona no restaurante</p>
+    </header>
+
+    <nav class="toc">
+      <strong>Neste guia</strong>
+      <ol>
+        <li><a href="#o-que-e">O que é a app</a></li>
+        <li><a href="#regras">Como funcionam os pontos</a></li>
+        <li><a href="#cliente">O que o cliente faz no telemóvel</a></li>
+        <li><a href="#caixa">O que a equipa faz na caixa</a></li>
+        <li><a href="#admin">Área Admin (contas de gestão)</a></li>
+        <li><a href="#duvidas">Dúvidas frequentes</a></li>
+      </ol>
+    </nav>
+
+    <h2 id="o-que-e">1. O que é a app</h2>
+    <p>A <strong>Chef Domingos</strong> é a app de fidelização dos restaurantes <strong>Portuguese Lab</strong> e <strong>Pizza Lab</strong>. O cliente acumula pontos quando paga e troca-os por vales em dinheiro ou promoções.</p>
+
+    <div class="grid">
+      <div>
+        <img class="photo" src="img/portuguese-lab.jpg" alt="Portuguese Lab" />
+        <p class="caption">Portuguese Lab</p>
+      </div>
+      <div>
+        <img class="photo" src="img/pizza-lab.jpg" alt="Pizza Lab" />
+        <p class="caption">Pizza Lab</p>
+      </div>
+    </div>
+
+    <div class="note">
+      A app <strong>não substitui a caixa (WinRest)</strong>. Serve para o cartão do cliente, o QR e os vales. O desconto no talão continua a ser aplicado por vocês na caixa, quando o vale for válido.
+    </div>
+
+    <h2 id="regras">2. Como funcionam os pontos</h2>
+    <table>
+      <thead>
+        <tr><th>Regra</th><th>Valor</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Ganhar pontos</td><td><strong>1 € gasto = 10 pontos</strong></td></tr>
+        <tr><td>Vale 5 €</td><td>500 pontos</td></tr>
+        <tr><td>Vale 10 €</td><td>900 pontos</td></tr>
+        <tr><td>Vale 20 €</td><td>1 700 pontos</td></tr>
+        <tr><td>Vale 30 €</td><td>2 500 pontos</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>Quando o cliente <strong>resgata um vale</strong>, esses pontos saem do saldo.</li>
+      <li>Só pode haver <strong>um vale em dinheiro por usar</strong> de cada vez.</li>
+      <li>Depois de resgatar um vale em dinheiro, espera <strong>24 horas</strong> para resgatar outro.</li>
+      <li>Contas novas: o cartão / QR em <strong>Ganhar</strong> fica totalmente ativo cerca de <strong>12 horas após o registo</strong>.</li>
+    </ul>
+
+    <h2 id="cliente">3. O que o cliente faz no telemóvel</h2>
+
+    <h3>Criar conta ou entrar</h3>
+    <ol class="steps">
+      <li>Descarrega a app <strong>Chef Domingos</strong> (App Store ou Google Play).</li>
+      <li>Passa o ecrã de boas-vindas (ou toca em <strong>Saltar</strong>).</li>
+      <li>Toca em <strong>Entrar com email</strong>.</li>
+      <li>Ou, se ainda não tiver conta: <strong>Registe-se</strong> (nome, email, palavra-passe e aceitar os termos).</li>
+    </ol>
+    <div class="warn">
+      Expliquem ao cliente que, nas primeiras ~12 horas, o QR em Ganhar pode ainda não funcionar na caixa. Vale a pena voltar na visita seguinte.
+    </div>
+
+    <div class="shots">
+      <figure class="shot">
+        <img src="img/shot-onboarding.png" alt="Ecrã de boas-vindas da app" />
+        <figcaption>Boas-vindas (Saltar ou Próximo)</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="img/shot-login.png" alt="Ecrã de login com email" />
+        <figcaption>Entrar com email</figcaption>
+      </figure>
+    </div>
+
+    <h3>Os 5 botões de baixo</h3>
+    <table>
+      <thead><tr><th>Separador</th><th>Para que serve</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Início</strong></td><td>Saldo de pontos, promoções e atalho para o menu de cada restaurante.</td></tr>
+        <tr><td><strong>Carteira</strong></td><td>Histórico: pontos ganhos e gastos.</td></tr>
+        <tr><td><strong>Ganhar</strong> (círculo dourado)</td><td>QR do cartão: é este que se mostra na caixa para <em>acumular</em> pontos.</td></tr>
+        <tr><td><strong>Recompensas</strong></td><td>Trocar pontos por vales 5 / 10 / 20 / 30 € e ver “Os meus vouchers”.</td></tr>
+        <tr><td><strong>Conta</strong></td><td>Perfil, idioma, termos e (nas contas de gestão) a Área Admin.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="shots">
+      <figure class="shot">
+        <img src="img/shot-home.png" alt="Ecrã Início com restaurantes" />
+        <figcaption>Início: saldo, promoções e restaurantes</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="img/shot-wallet.png" alt="Ecrã Carteira" />
+        <figcaption>Carteira: histórico de pontos</figcaption>
+      </figure>
+    </div>
+
+    <h3>Ganhar pontos (visita ao restaurante)</h3>
+    <ol class="steps">
+      <li>O cliente pede e paga normalmente na caixa.</li>
+      <li>Abre a app → <strong>Ganhar</strong>.</li>
+      <li>Mostra o <strong>QR grande</strong> (o ecrã não se desliga sozinho).</li>
+      <li>A caixa lê o cartão / QR. Os pontos entram com a conta (1 € = 10 pts).</li>
+    </ol>
+
+    <div class="shots">
+      <figure class="shot">
+        <img src="img/shot-ganhar.png" alt="Ecrã Ganhar com código QR do cartão" />
+        <figcaption>Ganhar: QR para a caixa</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="img/shot-rewards.png" alt="Ecrã Recompensas com vales" />
+        <figcaption>Recompensas: vales 5 / 10 / 20 / 30 €</figcaption>
+      </figure>
+    </div>
+
+    <h3>Usar um vale</h3>
+    <ol class="steps">
+      <li>Em <strong>Recompensas</strong>, o cliente escolhe o vale (se tiver pontos) e confirma. Os pontos saem logo.</li>
+      <li>Abre <strong>Os meus vouchers</strong> e mostra o <strong>QR do vale</strong> (não o de Ganhar).</li>
+      <li>A equipa valida na Área Admin e aplica o valor na caixa.</li>
+    </ol>
+    <div class="warn">
+      São dois QR diferentes: <strong>Ganhar</strong> = cartão para somar pontos. <strong>Os meus vouchers</strong> = vale para descontar na conta.
+    </div>
+
+    <div class="shots">
+      <figure class="shot">
+        <img src="img/shot-vouchers.png" alt="Ecrã Os meus vouchers" />
+        <figcaption>Os meus vouchers: QR do vale</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="img/shot-menu-client.png" alt="Menu Portuguese Lab na app" />
+        <figcaption>Menu do restaurante (no Início)</figcaption>
+      </figure>
+    </div>
+
+    <h2 id="caixa">4. O que a equipa faz na caixa</h2>
+    <p>No dia a dia só precisam disto:</p>
+
+    <h3>A. Cliente quer ganhar pontos</h3>
+    <ol class="steps">
+      <li>Peçam: “Abra a app → <strong>Ganhar</strong> e mostre o QR.”</li>
+      <li>Leiam esse QR / cartão como no fluxo de fidelização da caixa.</li>
+      <li>Os pontos entram sozinhos com o valor da conta.</li>
+    </ol>
+    <div class="ok">
+      Se a fatura for <strong>anulada no WinRest</strong>, o sistema de fidelização já retira os pontos. Não é preciso anular à mão.
+    </div>
+
+    <h3>B. Cliente quer usar um vale</h3>
+    <ol class="steps">
+      <li>Peçam o QR em <strong>Recompensas → Os meus vouchers</strong> (não o de Ganhar).</li>
+      <li>Na app da equipa: <strong>Conta → Área Admin → Validar voucher</strong>.</li>
+      <li>Leiam o QR (ou escrevam o código em Manual).</li>
+      <li>Se estiver <strong>Válido</strong>, a app diz o que aplicar (ex.: 5 €, 10 €, ou o item da promoção).</li>
+      <li>Aplicam <strong>exactamente esse valor / item</strong> na caixa.</li>
+    </ol>
+    <div class="note">
+      A app marca o vale como usado. Se aparecer “já utilizado” ou “expirou”, não aplicam desconto.
+    </div>
+
+    <h2 id="admin">5. Área Admin (gestão)</h2>
+    <p>Aparece em <strong>Conta</strong> só nas contas de administrador. O cliente normal não vê este botão.</p>
+
+    <div class="cred">
+      <strong>Acesso da equipa</strong><br />
+      Email: <code>admin@chefdomingos.app</code><br />
+      A palavra-passe não vai neste guia. Pedir à Witflow / Grupo PIE.
+    </div>
+
+    <div class="shots">
+      <figure class="shot">
+        <img src="img/shot-profile.png" alt="Ecrã Conta com Área Admin" />
+        <figcaption>Conta: botão Área Admin</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="img/shot-staff.png" alt="Hub da Área Admin" />
+        <figcaption>Área Admin: as 4 ferramentas</figcaption>
+      </figure>
+    </div>
+
+    <h3>Validar voucher</h3>
+    <ol class="steps">
+      <li>Abrir <strong>Validar voucher</strong>.</li>
+      <li>Permitir a câmara, se pedir.</li>
+      <li>Modo <strong>Scanner</strong> (ou <strong>Manual</strong> se o QR não ler).</li>
+      <li>Verde = válido. Vermelho = já usado. Amarelo = expirado / ainda não ativo.</li>
+      <li>Tocar em <strong>Validar outro</strong> para o cliente seguinte.</li>
+    </ol>
+    <div class="shots">
+      <figure class="shot">
+        <img src="img/shot-validate.png" alt="Ecrã Validar voucher em modo Manual" />
+        <figcaption>Validar voucher: Scanner ou Manual</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="img/shot-remove.png" alt="Ecrã Anular pontos" />
+        <figcaption>Anular pontos: só correção manual</figcaption>
+      </figure>
+    </div>
+
+    <h3>Anular pontos</h3>
+    <p>Só se precisarem de uma <strong>correção manual</strong> (ex.: engano). Se a venda foi anulada no WinRest, os pontos já saem sozinhos.</p>
+    <ol class="steps">
+      <li>Ler o QR <strong>Ganhar</strong> do cliente, ou escrever o código do cartão em Manual.</li>
+      <li>Tocar numa compra recente para a anular, ou indicar os pontos à mão e o motivo.</li>
+    </ol>
+
+    <h3>Criar ofertas (promoções do menu)</h3>
+    <ol class="steps">
+      <li><strong>Criar ofertas</strong> → escolher restaurante (Portuguese Lab ou Pizza Lab).</li>
+      <li>Tipo: <strong>Item grátis</strong> ou <strong>20% de desconto</strong>.</li>
+      <li>Escolher o item real do menu. Os pontos calculam-se sozinhos (<strong>preço × 10</strong>, ou 20% disso).</li>
+      <li>Título, descrição, dias de validade → <strong>Criar oferta</strong>.</li>
+      <li>A promoção aparece no <strong>Início</strong> do cliente. Ao resgatar, gasta pontos e gera um QR para validar na caixa.</li>
+    </ol>
+    <p>Os <strong>vales em dinheiro</strong> (5 / 10 / 20 / 30 €) já existem; não é preciso criá-los. Podem desativar uma promoção nas ofertas existentes.</p>
+    <div class="shots">
+      <figure class="shot">
+        <img src="img/shot-offers.png" alt="Ecrã Criar ofertas com lista do menu" />
+        <figcaption>Criar ofertas: item do menu</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="img/shot-menu-admin.png" alt="Ecrã Editar menu" />
+        <figcaption>Editar menu: nomes e preços</figcaption>
+      </figure>
+    </div>
+
+    <h3>Editar menu</h3>
+    <ol class="steps">
+      <li><strong>Editar menu</strong> → restaurante e categoria.</li>
+      <li>Alterar nome ou preço, adicionar item, ou remover (podem voltar a pô-lo depois).</li>
+    </ol>
+    <p>O menu que o cliente vê na app vem daqui. Complementos e bebidas não entram no seletor de promoções.</p>
+
+    <h2 id="duvidas">6. Dúvidas frequentes</h2>
+    <p><strong>O QR de Ganhar não funciona.</strong> Confirmar se a conta tem mais de ~12 horas. Pedir para sair e voltar a entrar. Se continuar, contactar o suporte.</p>
+    <p><strong>O cliente mostra o QR e não aconteceu nada.</strong> Confirmar que é o de <em>Ganhar</em> (acumular) e não o de um vale.</p>
+    <p><strong>O vale não desconta sozinho na caixa.</strong> É normal: a app valida; a equipa aplica o valor no WinRest.</p>
+    <p><strong>Anulei a fatura. Preciso de ir à Área Admin?</strong> Não. A anulação no WinRest já tira os pontos.</p>
+    <p><strong>O cliente não tem telemóvel.</strong> Sem app não há cartão digital nesta versão. Não inventar pontos à mão sem o cartão.</p>
+    <p><strong>Idioma.</strong> Em Conta → Editar perfil o cliente escolhe Português ou English.</p>
+    <p><strong>Apagar conta.</strong> O cliente pode eliminar a conta em Conta. Isso apaga o perfil de fidelização na app.</p>
+
+    <div class="note">
+      <strong>Contacto</strong><br />
+      Questões de caixa ou contas de gestão: a vossa equipa Witflow / Grupo PIE.<br />
+      Email geral: <a href="mailto:grupopie@grupopie.com">grupopie@grupopie.com</a>
+    </div>
+
+    <footer>
+      Chef Domingos · Portuguese Lab &amp; Pizza Lab · Guia para a equipa<br />
+      Outubro 2026
+    </footer>
+  </div>
+</body>
+</html>

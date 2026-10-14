@@ -8,6 +8,7 @@ export async function ensureUserRow(user: AuthUser): Promise<void> {
   const name = (user.user_metadata?.name as string | undefined) ?? '';
   const email = user.email ?? '';
 
+  // Only set identity fields — never touch is_admin / lkm_card_code on upsert.
   await supabase.from('users').upsert(
     {
       id: user.id,
@@ -15,6 +16,6 @@ export async function ensureUserRow(user: AuthUser): Promise<void> {
       name: name || email.split('@')[0],
       phone: '',
     },
-    { onConflict: 'id' },
+    { onConflict: 'id', ignoreDuplicates: false },
   );
 }

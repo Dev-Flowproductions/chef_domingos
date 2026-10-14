@@ -76,7 +76,9 @@ Deno.serve(async (req: Request) => {
 
     const items: LkmTransaction[] = Array.isArray(raw) ? raw : [];
 
-    let transactions = items.map(mapTransaction);
+    let transactions = items
+      .filter((tx) => !tx.IsCanceled)
+      .map(mapTransaction);
 
     // Client-side filter (LKM v2 endpoint doesn't always support server-side filter for earn/redeem)
     if (filter === 'ganhos') {

@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import LoyaltyQrImage from '../../components/LoyaltyQrImage';
 import { Colors, Assets } from '../../lib/theme';
 import { useVouchersStore } from '../../store/vouchersStore';
+import { formatVoucherExpiry, resolveVoucherState } from '../../lib/loyaltyRules';
 import type { RewardsStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<RewardsStackParamList, 'MyVouchers'>;
@@ -32,7 +33,7 @@ const STATE_KEYS: Record<string, string> = {
 
 export default function MyVouchersScreen() {
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { myVouchers, vouchersLoading, fetchMyVouchers } = useVouchersStore();
   const [refreshing, setRefreshing] = useState(false);
@@ -54,7 +55,10 @@ export default function MyVouchersScreen() {
     Alert.alert(t('ganhar.copiedTitle'), t('ganhar.copiedBody'));
   };
 
-  const activeVouchers = myVouchers.filter((v) => v.state === 'active' || v.state === 'pending');
+  const now = Date.now();
+  const resolved = myVouchers.map((v) => ({ ...v, state: resolveVoucherState(v, now) }));
+  const activeVouchers = resolved.filter((v) => v.state === 'active' || v.state === 'pending');
+  const pastVouchers = resolved.filter((v) => v.state === 'used' || v.state === 'expired');
 
   return (
     <View style={styles.root}>
@@ -90,7 +94,11 @@ export default function MyVouchersScreen() {
                     {v.restaurantName} · {t(stateKey)}
                   </Text>
                   {v.expiresAt ? (
-                    <Text style={styles.cardMeta}>{t('rewards.expires', { date: v.expiresAt.slice(0, 10) })}</Text>
+                    <Text style={styles.cardMeta}>
+                      {t('rewards.expires', {
+                        date: formatVoucherExpiry(v.expiresAt, i18n.language),
+                      })}
+                    </Text>
                   ) : null}
                   <View style={styles.qrWrap}>
                     <LoyaltyQrImage value={qrValue} size={160} />
@@ -105,19 +113,17 @@ export default function MyVouchersScreen() {
           </View>
         )}
 
-        {myVouchers.some((v) => v.state === 'used' || v.state === 'expired') ? (
+        {pastVouchers.length > 0 ? (
           <View style={styles.pastSection}>
             <Text style={styles.pastTitle}>{t('rewards.pastVouchers')}</Text>
-            {myVouchers
-              .filter((v) => v.state === 'used' || v.state === 'expired')
-              .map((v) => (
-                <View key={v.id} style={styles.pastRow}>
-                  <Text style={styles.pastRowTitle}>{v.title}</Text>
-                  <Text style={styles.pastRowState}>
-                    {t(STATE_KEYS[v.state] ?? 'rewards.voucherStateUsed')}
-                  </Text>
-                </View>
-              ))}
+            {pastVouchers.map((v) => (
+              <View key={v.id} style={styles.pastRow}>
+                <Text style={styles.pastRowTitle}>{v.title}</Text>
+                <Text style={styles.pastRowState}>
+                  {t(STATE_KEYS[v.state] ?? 'rewards.voucherStateUsed')}
+                </Text>
+              </View>
+            ))}
           </View>
         ) : null}
 

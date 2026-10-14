@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-  LayoutChangeEvent,
   ActivityIndicator,
   Alert,
   RefreshControl,
@@ -21,28 +20,11 @@ import { usePointsStore } from '../../store/pointsStore';
 import { useAuthStore } from '../../store/authStore';
 import { useVouchersStore } from '../../store/vouchersStore';
 import JDLogo from '../../components/JDLogo';
-import {
-  getFallbackCatalog,
-  localizeCatalogItem,
-  milestoneLabelForPts,
-} from '../../lib/offerI18n';
+import { getFallbackCatalog, localizeCatalogItem } from '../../lib/offerI18n';
+import { formatVoucherExpiry, moneyCooldownRemainingMs } from '../../lib/loyaltyRules';
 import type { RewardsStackParamList } from '../../navigation/types';
 
 type RewardsNav = NativeStackNavigationProp<RewardsStackParamList, 'RewardsMain'>;
-
-const POINTS_TIERS = [
-  { pts: 300, icon: require('../../assets/icon-cafe-rn.png'), labelKey: 'rewards.tierCoffee' },
-  { pts: 600, icon: require('../../assets/icon-sobremesa-rn.png'), labelKey: 'rewards.tierDessert' },
-  { pts: 900, icon: require('../../assets/icon-refeicao-rn.png'), labelKey: 'rewards.tierMeal' },
-];
-
-const MAX_PTS     = 900;
-const CIRCLE_SIZE = 39;
-const BAR_H       = 14;
-const BAR_TOP     = (CIRCLE_SIZE - BAR_H) / 2;
-const TIER_LABEL_WIDTH = 52;
-const TIER_HALF   = TIER_LABEL_WIDTH / 2;
-const CONTAINER_H = CIRCLE_SIZE + 20;
 
 const FALLBACK_IMAGES = [
   require('../../assets/pizza-lab-food.jpg'),
@@ -51,22 +33,24 @@ const FALLBACK_IMAGES = [
 
 export default function RecompensasScreen() {
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigation = useNavigation<RewardsNav>();
 
-  const { balance, nextMilestone, ptsToNext, loading: ptsLoading, fetch: fetchPoints } = usePointsStore();
-  const { catalog, catalogLoading, fetchCatalog, claim, claiming, myVouchers, fetchMyVouchers } = useVouchersStore();
+  const { balance, loading: ptsLoading, fetch: fetchPoints } = usePointsStore();
+  const {
+    moneyCatalog,
+    catalogLoading,
+    fetchCatalog,
+    claim,
+    claiming,
+    myVouchers,
+    fetchMyVouchers,
+    moneyCooldownUntil,
+    hasActiveVoucher,
+  } = useVouchersStore();
   const { user } = useAuthStore();
-
-  const [barWidth, setBarWidth] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-
-  const trackSpan = Math.max(0, barWidth - TIER_LABEL_WIDTH);
-  const fillWidth = trackSpan * Math.min(balance / MAX_PTS, 1);
-
-  const onBarLayout = (e: LayoutChangeEvent) => {
-    setBarWidth(e.nativeEvent.layout.width);
-  };
+  const [nowTick, setNowTick] = useState(Date.now());
 
   useEffect(() => {
     if (!user?.id) return;
@@ -75,6 +59,19 @@ export default function RecompensasScreen() {
     fetchMyVouchers();
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!moneyCooldownUntil) return;
+    const id = setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, [moneyCooldownUntil]);
+
+  const cooldownMs = useMemo(
+    () => moneyCooldownRemainingMs(moneyCooldownUntil, nowTick),
+    [moneyCooldownUntil, nowTick],
+  );
+  const moneyBlocked = cooldownMs > 0;
+  const redeemBlocked = moneyBlocked || hasActiveVoucher;
+
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([fetchPoints(), fetchCatalog(), fetchMyVouchers()]);
@@ -82,6 +79,19 @@ export default function RecompensasScreen() {
   };
 
   const handleClaim = async (catalogId: string, title: string, cost: number) => {
+    if (hasActiveVoucher) {
+      Alert.alert(t('rewards.noStackTitle'), t('rewards.noStackBody'));
+      return;
+    }
+    if (moneyBlocked) {
+      Alert.alert(
+        t('rewards.cooldownTitle'),
+        t('rewards.cooldownBody', {
+          until: formatVoucherExpiry(moneyCooldownUntil!, i18n.language),
+        }),
+      );
+      return;
+    }
     if (balance < cost) {
       Alert.alert(
         t('rewards.insufficientPoints'),
@@ -91,7 +101,7 @@ export default function RecompensasScreen() {
     }
     Alert.alert(
       t('rewards.claimTitle'),
-      t('rewards.claimConfirm', { title, cost }),
+      t('rewards.claimConfirmSpend', { title, cost }),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
@@ -99,13 +109,30 @@ export default function RecompensasScreen() {
           onPress: async () => {
             try {
               await claim(catalogId);
-              await fetchPoints();
-              Alert.alert(t('common.success'), t('rewards.claimSuccess', { title }), [
+              await Promise.all([fetchPoints(), fetchCatalog(), fetchMyVouchers()]);
+              Alert.alert(t('common.success'), t('rewards.claimSuccessQr', { title, cost }), [
                 { text: t('rewards.viewVouchers'), onPress: () => navigation.navigate('MyVouchers') },
                 { text: t('common.ok'), style: 'cancel' },
               ]);
             } catch (err) {
-              Alert.alert(t('common.error'), (err as Error).message);
+              const msg = (err as Error).message;
+              if (msg === 'ACTIVE_VOUCHER') {
+                Alert.alert(t('rewards.noStackTitle'), t('rewards.noStackBody'));
+                await fetchMyVouchers();
+                return;
+              }
+              if (msg.startsWith('COOLDOWN:')) {
+                const until = msg.slice('COOLDOWN:'.length);
+                Alert.alert(
+                  t('rewards.cooldownTitle'),
+                  t('rewards.cooldownBody', {
+                    until: formatVoucherExpiry(until, i18n.language),
+                  }),
+                );
+                await fetchCatalog();
+                return;
+              }
+              Alert.alert(t('common.error'), msg);
             }
           },
         },
@@ -113,16 +140,8 @@ export default function RecompensasScreen() {
     );
   };
 
-  const milestoneName = nextMilestone
-    ? milestoneLabelForPts(nextMilestone.pts, t) || nextMilestone.label
-    : '';
-
-  const subtitleText = nextMilestone
-    ? t('rewards.ptsToMilestone', {
-        count: ptsToNext,
-        milestone: milestoneName.toLowerCase(),
-      })
-    : t('rewards.allMilestones');
+  const list = moneyCatalog.length > 0 ? moneyCatalog : getFallbackCatalog(t);
+  const activeCount = myVouchers.filter((v) => v.state === 'active' || v.state === 'pending').length;
 
   return (
     <View style={styles.root}>
@@ -136,8 +155,18 @@ export default function RecompensasScreen() {
           <JDLogo size="small" />
         </View>
 
-        <View style={styles.titleBlock}>
+        <View style={styles.pointsBlock}>
           <Text style={styles.label}>{t('rewards.title')}</Text>
+          {ptsLoading ? (
+            <ActivityIndicator color={Colors.gold} style={{ marginVertical: 8 }} />
+          ) : (
+            <>
+              <Text style={styles.pointsNum}>{Number.isFinite(balance) ? balance : 0}</Text>
+              <Text style={styles.pointsLabel}>{t('common.points')}</Text>
+              <Text style={styles.earnHint}>{t('rewards.earnRate')}</Text>
+              <Text style={styles.spendHint}>{t('rewards.spendHint')}</Text>
+            </>
+          )}
           <TouchableOpacity
             style={styles.myVouchersBtn}
             onPress={() => navigation.navigate('MyVouchers')}
@@ -146,76 +175,59 @@ export default function RecompensasScreen() {
             <Ionicons name="ticket-outline" size={18} color={Colors.gold} />
             <Text style={styles.myVouchersText}>
               {t('rewards.myVouchers')}
-              {myVouchers.filter((v) => v.state === 'active' || v.state === 'pending').length > 0
-                ? ` (${myVouchers.filter((v) => v.state === 'active' || v.state === 'pending').length})`
-                : ''}
+              {activeCount > 0 ? ` (${activeCount})` : ''}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* ── Ofertas Grátis ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('rewards.freeOffers')}</Text>
-          {ptsLoading ? (
-            <ActivityIndicator color={Colors.gold} style={{ marginVertical: 12 }} />
-          ) : (
-            <>
-              <Text style={styles.sectionSubtitle}>{subtitleText}</Text>
-
-              <View style={styles.progressContainer} onLayout={onBarLayout}>
-                <View style={styles.progressTrack} />
-                <View style={[styles.progressFill, { width: fillWidth }]} />
-
-                {barWidth > 0 && POINTS_TIERS.map((tier) => {
-                  const isDone = balance >= tier.pts;
-                  const centerX = TIER_HALF + trackSpan * (tier.pts / MAX_PTS);
-                  const left = centerX - TIER_HALF;
-                  return (
-                    <View key={tier.pts} style={[styles.tierWrapper, { left }]}>
-                      <View style={[styles.tierCircle, isDone && styles.tierCircleDone]}>
-                        <Image source={tier.icon} style={styles.tierIcon} />
-                      </View>
-                      <Text style={styles.tierPts}>{t('rewards.ptsShort', { count: tier.pts })}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </>
-          )}
-        </View>
-
-        {/* ── Ofertas Exclusivas ── */}
-        <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>{t('rewards.exclusiveOffers')}</Text>
+        <Text style={[styles.sectionTitle, { marginBottom: 4 }]}>{t('rewards.moneyVouchers')}</Text>
+        <Text style={styles.sectionSubtitle}>{t('rewards.moneyVouchersHint')}</Text>
+        {hasActiveVoucher ? (
+          <Text style={styles.cooldownBanner}>{t('rewards.noStackBanner')}</Text>
+        ) : moneyBlocked && moneyCooldownUntil ? (
+          <Text style={styles.cooldownBanner}>
+            {t('rewards.cooldownBanner', {
+              until: formatVoucherExpiry(moneyCooldownUntil, i18n.language),
+            })}
+          </Text>
+        ) : null}
 
         {catalogLoading ? (
           <ActivityIndicator color={Colors.gold} style={{ marginVertical: 16 }} />
         ) : (
           <View style={styles.list}>
-            {(catalog.length > 0 ? catalog : getFallbackCatalog(t)).map((raw, i) => {
+            {list.map((raw, i) => {
               const v = localizeCatalogItem(raw, t);
+              const disabled = claiming || redeemBlocked;
               return (
-              <View key={v.id} style={styles.voucher}>
-                <Image
-                  source={v.imageUrl ? { uri: v.imageUrl } : FALLBACK_IMAGES[i % 2]}
-                  style={styles.voucherBg}
-                  resizeMode="cover"
-                />
-                <View style={styles.overlay} />
-                <View style={styles.voucherContent}>
-                  <Text style={styles.vTag}>{v.restaurantName}</Text>
-                  <Text style={styles.vTitle}>{v.title}</Text>
-                  <Text style={styles.vValid}>{v.description}</Text>
-                  <TouchableOpacity
-                    style={[styles.vBtn, claiming && styles.vBtnDisabled]}
-                    activeOpacity={0.85}
-                    onPress={() => handleClaim(v.id, v.title, v.pointsCost)}
-                    disabled={claiming}
-                  >
-                    <Text style={styles.vBtnText}>{t('rewards.pointsCost', { count: v.pointsCost })}</Text>
-                  </TouchableOpacity>
+                <View key={v.id} style={[styles.voucher, redeemBlocked && styles.voucherDimmed]}>
+                  <Image
+                    source={v.imageUrl ? { uri: v.imageUrl } : FALLBACK_IMAGES[i % 2]}
+                    style={styles.voucherBg}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.overlay} />
+                  <View style={styles.voucherContent}>
+                    <Text style={styles.vTag}>{v.restaurantName}</Text>
+                    <Text style={styles.vTitle}>{v.title}</Text>
+                    <Text style={styles.vValid}>{v.description}</Text>
+                    <TouchableOpacity
+                      style={[styles.vBtn, disabled && styles.vBtnDisabled]}
+                      activeOpacity={0.85}
+                      onPress={() => handleClaim(v.id, v.title, v.pointsCost)}
+                      disabled={disabled}
+                    >
+                      <Text style={styles.vBtnText}>
+                        {hasActiveVoucher
+                          ? t('rewards.noStackShort')
+                          : moneyBlocked
+                            ? t('rewards.cooldownShort')
+                            : t('rewards.redeemForPoints', { count: v.pointsCost })}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            );
+              );
             })}
           </View>
         )}
@@ -231,13 +243,25 @@ const styles = StyleSheet.create({
   bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   logoWrap: { alignItems: 'center', marginBottom: 4 },
-  titleBlock: { alignItems: 'center', marginBottom: 16 },
-  label: { fontSize: 26, color: Colors.textPrimary },
+  pointsBlock: { alignItems: 'center', marginBottom: 24 },
+  label: { fontSize: 26, color: Colors.textPrimary, marginBottom: 8 },
+  pointsNum: { fontSize: 48, fontWeight: '300', color: Colors.gold, lineHeight: 56 },
+  pointsLabel: { fontSize: 14, letterSpacing: 2, color: Colors.textPrimary, marginBottom: 8 },
+  earnHint: { fontSize: 12, color: '#757575', textAlign: 'center' },
+  spendHint: {
+    fontSize: 13,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginTop: 8,
+    marginHorizontal: 12,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
   myVouchersBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 10,
+    marginTop: 14,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -245,51 +269,17 @@ const styles = StyleSheet.create({
     borderColor: Colors.gold,
   },
   myVouchersText: { fontSize: 14, color: Colors.gold, fontWeight: '600' },
-  section: { marginBottom: 28 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
-  sectionSubtitle: { fontSize: 11, color: '#757575', marginBottom: 14 },
-  progressContainer: { height: CONTAINER_H, position: 'relative' },
-  progressTrack: {
-    position: 'absolute',
-    top: BAR_TOP,
-    left: TIER_HALF,
-    right: TIER_HALF,
-    height: BAR_H,
-    borderRadius: 30,
-    backgroundColor: 'rgba(191,153,78,0.5)',
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
+  sectionSubtitle: { fontSize: 12, color: '#757575', marginBottom: 14, lineHeight: 18 },
+  cooldownBanner: {
+    fontSize: 13,
+    color: '#8a5a00',
+    backgroundColor: 'rgba(191,153,78,0.18)',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 14,
+    lineHeight: 18,
   },
-  progressFill: {
-    position: 'absolute',
-    top: BAR_TOP,
-    left: TIER_HALF,
-    height: BAR_H,
-    borderRadius: 30,
-    backgroundColor: Colors.gold,
-  },
-  tierWrapper: {
-    position: 'absolute',
-    top: 0,
-    width: TIER_LABEL_WIDTH,
-    alignItems: 'center',
-  },
-  tierCircle: {
-    width: CIRCLE_SIZE,
-    height: CIRCLE_SIZE,
-    borderRadius: CIRCLE_SIZE / 2,
-    borderWidth: 2,
-    borderColor: Colors.gold,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tierCircleDone: { backgroundColor: 'rgba(191,153,78,0.15)' },
-  tierIcon: { width: 16, height: 16, resizeMode: 'contain' },
-  tierPts: { fontSize: 10, color: '#757575', marginTop: 4, textAlign: 'center' },
   list: { gap: 16 },
   voucher: {
     height: 189,
@@ -302,11 +292,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  voucherDimmed: { opacity: 0.72 },
   voucherBg: { position: 'absolute', width: '100%', height: '100%' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.48)' },
   voucherContent: { flex: 1, padding: 20, justifyContent: 'center' },
   vTag: { color: '#fff', fontSize: 14, marginBottom: 4 },
-  vTitle: { color: Colors.gold, fontSize: 19, fontWeight: '700', lineHeight: 24, marginBottom: 16 },
+  vTitle: { color: Colors.gold, fontSize: 19, fontWeight: '700', lineHeight: 24, marginBottom: 8 },
   vValid: { color: '#fff', fontSize: 14, marginBottom: 12 },
   vBtn: {
     backgroundColor: Colors.gold,
@@ -316,5 +307,5 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   vBtnDisabled: { opacity: 0.5 },
-  vBtnText: { color: '#fff', fontSize: 12 },
+  vBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
 });

@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { USE_MOCK } from '../lib/config';
 import { MOCK_USER } from '../lib/mockData';
 import { ensureLkmCardLinked } from '../services/lkm/ensureCard';
+import { lkmCall } from '../services/lkm/client';
 import { ensureUserRow } from '../lib/ensureUserProfile';
 import { withTimeout } from '../lib/withTimeout';
 import { useUserStore } from './userStore';
@@ -20,6 +21,8 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<{ error: Error | null }>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
   initialize: () => Promise<void>;
 }
 
@@ -144,7 +147,36 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signOut: async () => {
     if (!USE_MOCK) await supabase.auth.signOut();
+    await SecureStore.deleteItemAsync(LKM_PENDING_PWD_KEY).catch(() => {});
+    useUserStore.getState().clearProfile();
     set({ session: null, user: null });
+  },
+
+  deleteAccount: async () => {
+    if (USE_MOCK) {
+      set({ session: null, user: null });
+      useUserStore.getState().clearProfile();
+      return { error: null };
+    }
+
+    try {
+      await lkmCall<{ deleted: boolean }>('delete-account', { method: 'POST', body: {} });
+      await SecureStore.deleteItemAsync(LKM_PENDING_PWD_KEY).catch(() => {});
+      await clearLocalAuthSession();
+      useUserStore.getState().clearProfile();
+      set({ session: null, user: null });
+      return { error: null };
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error(String(err)) };
+    }
+  },
+
+  resetPassword: async (email) => {
+    if (USE_MOCK) return { error: null };
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: 'chefdomingos://auth/reset',
+    });
+    return { error: error ? new Error(error.message) : null };
   },
 
   initialize: async () => {

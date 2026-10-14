@@ -12,8 +12,11 @@ export type ProfileStackParamList = {
   Help: undefined;
   Terms: undefined;
   Privacy: undefined;
-  StaffPin: undefined;
+  StaffHub: undefined;
   StaffValidate: undefined;
+  AdminOffers: undefined;
+  AdminMenu: undefined;
+  StaffRemovePoints: undefined;
 };
 
 export type RewardsStackParamList = {
