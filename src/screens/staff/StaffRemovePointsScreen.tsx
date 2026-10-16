@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -20,14 +21,19 @@ import { hasAdminAccess } from '../../lib/adminAccess';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
 import {
+  getStaffUserHistory,
+  listStaffDirectory,
   lookupCustomerByCard,
   reverseCustomerPoints,
   StaffEarnTransaction,
+  StaffHistoryTransaction,
   StaffLookupResult,
+  StaffUserRow,
 } from '../../services/lkm/staffPoints';
 import type { ProfileStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'StaffRemovePoints'>;
+type DirectoryTab = 'users' | 'txs' | 'scan';
 
 function formatTxDate(iso: string | null, locale: string): string {
   if (!iso) return '—';
@@ -39,6 +45,23 @@ function formatTxDate(iso: string | null, locale: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function shortId(id: string): string {
+  return id.slice(0, 8);
+}
+
+function displayName(user: { name: string | null; email: string | null; id: string }): string {
+  return user.name?.trim() || user.email?.trim() || shortId(user.id);
+}
+
+function matchesFilter(
+  q: string,
+  fields: Array<string | null | undefined>,
+): boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  return fields.some((v) => (v ?? '').toLowerCase().includes(needle));
 }
 
 export default function StaffRemovePointsScreen() {
@@ -60,7 +83,12 @@ export default function StaffRemovePointsScreen() {
     }, [isAdmin, navigation]),
   );
 
-  const [mode, setMode] = useState<'scan' | 'manual'>('scan');
+  const [tab, setTab] = useState<DirectoryTab>('users');
+  const [query, setQuery] = useState('');
+  const [users, setUsers] = useState<StaffUserRow[]>([]);
+  const [allTxs, setAllTxs] = useState<StaffHistoryTransaction[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [cardInput, setCardInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [scanLocked, setScanLocked] = useState(false);
@@ -69,6 +97,68 @@ export default function StaffRemovePointsScreen() {
   const [manualPoints, setManualPoints] = useState('');
   const [reason, setReason] = useState('');
   const [busyTxId, setBusyTxId] = useState<string | null>(null);
+
+  const loadDirectory = useCallback(async () => {
+    setError(null);
+    try {
+      const res = await listStaffDirectory();
+      setUsers(res.users);
+      setAllTxs(res.transactions);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAdmin) return;
+      setLoadingList(true);
+      void loadDirectory().finally(() => setLoadingList(false));
+    }, [isAdmin, loadDirectory]),
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadDirectory();
+    setRefreshing(false);
+  };
+
+  const filteredUsers = useMemo(
+    () =>
+      users.filter((u) =>
+        matchesFilter(query, [u.name, u.email, u.id, u.cardCode, u.shortCode]),
+      ),
+    [users, query],
+  );
+
+  const filteredTxs = useMemo(
+    () =>
+      allTxs.filter((tx) =>
+        matchesFilter(query, [
+          tx.userName,
+          tx.userEmail,
+          tx.userId,
+          tx.cardCode,
+          tx.description,
+          tx.restaurant,
+        ]),
+      ),
+    [allTxs, query],
+  );
+
+  const openUser = useCallback(async (userId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getStaffUserHistory(userId);
+      setCustomer(res);
+      setScanLocked(true);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const lookup = useCallback(async (rawCode: string) => {
     const trimmed = rawCode.trim();
@@ -105,13 +195,14 @@ export default function StaffRemovePointsScreen() {
     setManualPoints('');
     setReason('');
     setBusyTxId(null);
+    setTab('users');
   };
 
   const confirmReverse = (opts: { points?: number; lkmTxId?: string; label: string }) => {
     if (!customer) return;
     Alert.alert(
       t('staff.removeConfirmTitle'),
-      t('staff.removeConfirmBody', { label: opts.label, name: customer.name ?? customer.cardCode }),
+      t('staff.removeConfirmBody', { label: opts.label, name: customer.name ?? customer.cardCode ?? customer.userId }),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
@@ -130,6 +221,7 @@ export default function StaffRemovePointsScreen() {
     try {
       const res = await reverseCustomerPoints({
         cardCode: customer.cardCode,
+        userId: customer.userId,
         points: opts.points,
         lkmTxId: opts.lkmTxId,
         reason: reason.trim() || undefined,
@@ -138,9 +230,10 @@ export default function StaffRemovePointsScreen() {
         t('common.success'),
         t('staff.removeSuccess', { count: res.pointsRemoved, balance: res.newBalance }),
       );
-      const refreshed = await lookupCustomerByCard(customer.cardCode);
+      const refreshed = await getStaffUserHistory(customer.userId);
       setCustomer(refreshed);
       setManualPoints('');
+      await loadDirectory();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -160,7 +253,7 @@ export default function StaffRemovePointsScreen() {
     });
   };
 
-  const onTxPress = (tx: StaffEarnTransaction) => {
+  const onEarnPress = (tx: StaffEarnTransaction) => {
     if (tx.alreadyReversed || busyTxId) return;
     confirmReverse({
       lkmTxId: tx.id,
@@ -169,6 +262,55 @@ export default function StaffRemovePointsScreen() {
         restaurant: tx.restaurant,
       }),
     });
+  };
+
+  const onHistoryPress = (tx: StaffHistoryTransaction) => {
+    if (!tx.reversible || tx.alreadyReversed || busyTxId) return;
+    onEarnPress({
+      id: tx.id,
+      restaurant: tx.restaurant,
+      date: tx.date,
+      amountPaid: tx.amountPaid,
+      points: tx.points,
+      alreadyReversed: tx.alreadyReversed,
+    });
+  };
+
+  const renderTxRow = (tx: StaffHistoryTransaction, showUser: boolean) => {
+    const reversible = tx.reversible && !tx.alreadyReversed;
+    const ptsColor = tx.points > 0 ? Colors.gold : '#B45309';
+    return (
+      <TouchableOpacity
+        key={`${tx.userId}-${tx.id}`}
+        style={[styles.txRow, tx.alreadyReversed && styles.txRowDisabled]}
+        activeOpacity={reversible ? 0.85 : 1}
+        disabled={!reversible || Boolean(busyTxId)}
+        onPress={() => (customer ? onHistoryPress(tx) : void openUser(tx.userId))}
+      >
+        <View style={styles.txText}>
+          {showUser ? (
+            <Text style={styles.txRestaurant}>{displayName({ id: tx.userId, name: tx.userName, email: tx.userEmail })}</Text>
+          ) : (
+            <Text style={styles.txRestaurant}>{tx.restaurant}</Text>
+          )}
+          <Text style={styles.txMeta}>
+            {showUser ? `${tx.description} · ` : ''}
+            {formatTxDate(tx.date, i18n.language)}
+            {tx.amountPaid > 0 ? ` · ${tx.amountPaid.toFixed(2)}€` : ''}
+          </Text>
+          {showUser ? <Text style={styles.txId}>{t('staff.userIdLabel', { id: shortId(tx.userId) })}</Text> : null}
+          {tx.alreadyReversed ? <Text style={styles.txReversed}>{t('staff.removeAlready')}</Text> : null}
+          {customer && reversible ? <Text style={styles.txHint}>{t('staff.tapToReverse')}</Text> : null}
+        </View>
+        {busyTxId === tx.id ? (
+          <ActivityIndicator color={Colors.gold} />
+        ) : (
+          <Text style={[styles.txPoints, { color: ptsColor }, tx.alreadyReversed && styles.txPointsMuted]}>
+            {tx.points > 0 ? `+${tx.points}` : String(tx.points)}
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -182,53 +324,113 @@ export default function StaffRemovePointsScreen() {
 
       {!customer ? (
         <>
+          <TextInput
+            style={styles.input}
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('staff.searchPlaceholder')}
+            placeholderTextColor="#999"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
           <View style={styles.modeRow}>
-            <TouchableOpacity
-              style={[styles.modeBtn, mode === 'scan' && styles.modeBtnActive]}
-              onPress={() => setMode('scan')}
-            >
-              <Text style={[styles.modeBtnText, mode === 'scan' && styles.modeBtnTextActive]}>
-                {t('staff.modeScan')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modeBtn, mode === 'manual' && styles.modeBtnActive]}
-              onPress={() => setMode('manual')}
-            >
-              <Text style={[styles.modeBtnText, mode === 'manual' && styles.modeBtnTextActive]}>
-                {t('staff.modeManual')}
-              </Text>
-            </TouchableOpacity>
+            {([
+              { id: 'users', label: t('staff.usersTab') },
+              { id: 'txs', label: t('staff.txsTab') },
+              { id: 'scan', label: t('staff.scanTab') },
+            ] as const).map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.modeBtn, tab === item.id && styles.modeBtnActive]}
+                onPress={() => setTab(item.id)}
+              >
+                <Text style={[styles.modeBtnText, tab === item.id && styles.modeBtnTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-            {mode === 'scan' ? (
-              <View style={styles.cameraWrap}>
-                {!permission?.granted ? (
-                  <View style={styles.cameraPlaceholder}>
-                    <Text style={styles.cameraPlaceholderText}>{t('staff.removeCameraPermission')}</Text>
-                    <TouchableOpacity style={styles.btn} onPress={() => void requestPermission()}>
-                      <Text style={styles.btnText}>{t('staff.cameraAllow')}</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <CameraView
-                    style={styles.camera}
-                    facing="back"
-                    barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                    onBarcodeScanned={scanLocked || customer ? undefined : onBarcodeScanned}
-                  />
-                )}
-                {loading ? (
-                  <View style={styles.cameraOverlay}>
-                    <ActivityIndicator color="#fff" size="large" />
-                  </View>
-                ) : null}
-              </View>
-            ) : (
+          {loading && tab !== 'scan' ? (
+            <ActivityIndicator color={Colors.gold} style={{ marginTop: 24 }} />
+          ) : null}
+
+          <ScrollView
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              tab === 'scan' ? undefined : (
+                <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={Colors.gold} />
+              )
+            }
+          >
+            {tab === 'users' ? (
               <>
+                {loadingList && users.length === 0 ? (
+                  <ActivityIndicator color={Colors.gold} style={{ marginTop: 24 }} />
+                ) : filteredUsers.length === 0 ? (
+                  <Text style={styles.empty}>{t('staff.noUsers')}</Text>
+                ) : (
+                  filteredUsers.map((u) => (
+                    <TouchableOpacity
+                      key={u.id}
+                      style={styles.userRow}
+                      activeOpacity={0.85}
+                      onPress={() => void openUser(u.id)}
+                    >
+                      <View style={styles.txText}>
+                        <Text style={styles.customerName}>{displayName(u)}</Text>
+                        <Text style={styles.customerMeta}>{u.email ?? u.cardCode ?? '—'}</Text>
+                        <Text style={styles.txId}>{t('staff.userIdLabel', { id: shortId(u.id) })}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#999" />
+                    </TouchableOpacity>
+                  ))
+                )}
+              </>
+            ) : null}
+
+            {tab === 'txs' ? (
+              <>
+                {loadingList && allTxs.length === 0 ? (
+                  <ActivityIndicator color={Colors.gold} style={{ marginTop: 24 }} />
+                ) : filteredTxs.length === 0 ? (
+                  <Text style={styles.empty}>{t('staff.noAllTx')}</Text>
+                ) : (
+                  filteredTxs.map((tx) => renderTxRow(tx, true))
+                )}
+              </>
+            ) : null}
+
+            {tab === 'scan' ? (
+              <>
+                <View style={styles.cameraWrap}>
+                  {!permission?.granted ? (
+                    <View style={styles.cameraPlaceholder}>
+                      <Text style={styles.cameraPlaceholderText}>{t('staff.removeCameraPermission')}</Text>
+                      <TouchableOpacity style={styles.btn} onPress={() => void requestPermission()}>
+                        <Text style={styles.btnText}>{t('staff.cameraAllow')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <CameraView
+                      style={styles.camera}
+                      facing="back"
+                      barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                      onBarcodeScanned={scanLocked || customer ? undefined : onBarcodeScanned}
+                    />
+                  )}
+                  {loading ? (
+                    <View style={styles.cameraOverlay}>
+                      <ActivityIndicator color="#fff" size="large" />
+                    </View>
+                  ) : null}
+                </View>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { marginTop: 14 }]}
                   value={cardInput}
                   onChangeText={setCardInput}
                   placeholder={t('staff.removeCardPlaceholder')}
@@ -249,51 +451,27 @@ export default function StaffRemovePointsScreen() {
                   )}
                 </TouchableOpacity>
               </>
-            )}
+            ) : null}
+
             {error ? <Text style={styles.error}>{error}</Text> : null}
           </ScrollView>
         </>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           <View style={styles.customerCard}>
             <Text style={styles.customerName}>{customer.name ?? '—'}</Text>
-            <Text style={styles.customerMeta}>{customer.email ?? customer.cardCode}</Text>
+            <Text style={styles.customerMeta}>{customer.email ?? customer.cardCode ?? '—'}</Text>
+            <Text style={styles.txId}>{t('staff.userIdLabel', { id: customer.userId })}</Text>
             <Text style={styles.customerBalance}>
               {t('staff.removeBalance', { count: customer.balance })}
             </Text>
           </View>
 
-          <Text style={styles.sectionTitle}>{t('staff.removeRecentTitle')}</Text>
-          {customer.transactions.length === 0 ? (
+          <Text style={styles.sectionTitle}>{t('staff.historyAllTitle')}</Text>
+          {(customer.history ?? []).length === 0 ? (
             <Text style={styles.empty}>{t('staff.removeNoTx')}</Text>
           ) : (
-            customer.transactions.map((tx) => (
-              <TouchableOpacity
-                key={tx.id}
-                style={[styles.txRow, tx.alreadyReversed && styles.txRowDisabled]}
-                activeOpacity={0.85}
-                disabled={tx.alreadyReversed || Boolean(busyTxId)}
-                onPress={() => onTxPress(tx)}
-              >
-                <View style={styles.txText}>
-                  <Text style={styles.txRestaurant}>{tx.restaurant}</Text>
-                  <Text style={styles.txMeta}>
-                    {formatTxDate(tx.date, i18n.language)}
-                    {tx.amountPaid > 0 ? ` · ${tx.amountPaid.toFixed(2)}€` : ''}
-                  </Text>
-                  {tx.alreadyReversed ? (
-                    <Text style={styles.txReversed}>{t('staff.removeAlready')}</Text>
-                  ) : null}
-                </View>
-                {busyTxId === tx.id ? (
-                  <ActivityIndicator color={Colors.gold} />
-                ) : (
-                  <Text style={[styles.txPoints, tx.alreadyReversed && styles.txPointsMuted]}>
-                    −{tx.points}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ))
+            (customer.history ?? []).map((tx) => renderTxRow(tx, false))
           )}
 
           <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('staff.removeManualTitle')}</Text>
@@ -342,7 +520,7 @@ const styles = StyleSheet.create({
   close: { alignSelf: 'flex-end', padding: 8 },
   title: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginTop: 8 },
   subtitle: { fontSize: 14, color: '#757575', marginTop: 8, marginBottom: 16, lineHeight: 20 },
-  modeRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  modeRow: { flexDirection: 'row', gap: 8, marginBottom: 16, marginTop: 12 },
   modeBtn: {
     flex: 1,
     paddingVertical: 10,
@@ -353,7 +531,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   modeBtnActive: { backgroundColor: Colors.gold, borderColor: Colors.gold },
-  modeBtnText: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  modeBtnText: { fontSize: 13, fontWeight: '600', color: Colors.textPrimary },
   modeBtnTextActive: { color: '#fff' },
   scroll: { paddingBottom: 40 },
   cameraWrap: {
@@ -423,7 +601,18 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: 10,
   },
-  empty: { fontSize: 14, color: '#757575', marginBottom: 8 },
+  empty: { fontSize: 14, color: '#757575', marginBottom: 8, marginTop: 12 },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    padding: 14,
+    marginBottom: 8,
+    gap: 12,
+  },
   txRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -439,8 +628,10 @@ const styles = StyleSheet.create({
   txText: { flex: 1 },
   txRestaurant: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
   txMeta: { fontSize: 12, color: '#757575', marginTop: 2 },
+  txId: { fontSize: 11, color: '#9a9a9a', marginTop: 2 },
+  txHint: { fontSize: 12, color: Colors.gold, marginTop: 4 },
   txReversed: { fontSize: 12, color: '#B45309', marginTop: 4 },
-  txPoints: { fontSize: 16, fontWeight: '700', color: '#B45309' },
+  txPoints: { fontSize: 16, fontWeight: '700' },
   txPointsMuted: { color: '#999' },
   secondaryBtn: { marginTop: 24, alignItems: 'center', padding: 12 },
   secondaryBtnText: { color: Colors.gold, fontSize: 15, textDecorationLine: 'underline' },
