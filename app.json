@@ -2,7 +2,7 @@
   "expo": {
     "name": "Chef Domingos",
     "slug": "chef",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "chefdomingos",
@@ -19,7 +19,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "A app Chef Domingos precisa da câmara para ler o QR dos vouchers dos clientes."
-      }
+      },
+      "buildNumber": "8"
     },
     "android": {
       "package": "pt.chefdomingos.loyalty",
