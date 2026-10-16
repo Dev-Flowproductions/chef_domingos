@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, Animated } from 'react-native';
+import { View, Image, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Assets } from '../../lib/theme';
+import JDLogo from '../../components/JDLogo';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -39,11 +40,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <View style={styles.logoWrap}>
-        <View style={styles.letters}>
-          <Text style={[styles.letter, { color: '#B59363' }]}>J</Text>
-          <Text style={[styles.letter, styles.letterD, { color: '#8E7D65' }]}>D</Text>
-        </View>
-        <Text style={styles.subtitle}>By Chef José Domingos</Text>
+        <JDLogo size="large" />
       </View>
       <Animated.View style={[styles.spinner, { transform: [{ rotate }] }]}>
         <View style={styles.spinnerInner} />
@@ -69,24 +66,6 @@ const styles = StyleSheet.create({
   },
   logoWrap: {
     alignItems: 'center',
-  },
-  letters: {
-    flexDirection: 'row',
-  },
-  letter: {
-    fontSize: 130,
-    fontStyle: 'italic',
-    fontWeight: '400',
-    lineHeight: 150,
-  },
-  letterD: {
-    marginTop: 12,
-  },
-  subtitle: {
-    fontSize: 18,
-    fontStyle: 'italic',
-    color: '#8E7D65',
-    marginTop: 4,
   },
   spinner: {
     position: 'absolute',

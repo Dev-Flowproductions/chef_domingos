@@ -22,3 +22,6 @@ verify_jwt = false
 
 [functions.reward-offers]
 verify_jwt = false
+
+[functions.staff-points]
+verify_jwt = false

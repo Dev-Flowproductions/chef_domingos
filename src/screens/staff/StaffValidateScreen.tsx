@@ -7,6 +7,7 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -16,8 +17,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Colors } from '../../lib/theme';
 import { validateStaffVoucher, VoucherValidationStatus } from '../../services/lkm/vouchers';
-import { validateLocalVoucher } from '../../services/lkm/rewardOffers';
+import { unvalidateLocalVoucher, validateLocalVoucher } from '../../services/lkm/rewardOffers';
 import { hasAdminAccess } from '../../lib/adminAccess';
+import {
+  extractVoucherCode,
+  isAppVoucherCode,
+  looksLikeLoyaltyCard,
+} from '../../lib/voucherCode';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
 import type { ProfileStackParamList } from '../../navigation/types';
@@ -32,6 +38,7 @@ const STATUS_STYLE: Record<
   already_used: { bg: '#dc2626', icon: 'close-circle', msgKey: 'staff.resultUsed' },
   expired: { bg: '#ca8a04', icon: 'time', msgKey: 'staff.resultExpired' },
   not_active: { bg: '#ca8a04', icon: 'time', msgKey: 'staff.resultNotActive' },
+  restored: { bg: '#0f766e', icon: 'refresh-circle', msgKey: 'staff.resultRestored' },
 };
 
 export default function StaffValidateScreen() {
@@ -62,38 +69,56 @@ export default function StaffValidateScreen() {
     title: string;
     euroValue?: number;
     staffInstruction?: string;
+    canUndo?: boolean;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [undoing, setUndoing] = useState(false);
 
   const validate = useCallback(async (rawCode: string) => {
-    const trimmed = rawCode.trim();
-    if (!trimmed || loading) return;
+    const code = extractVoucherCode(rawCode);
+    if (!code || loading) return;
     setLoading(true);
     setError(null);
     setResult(null);
     setScanLocked(true);
     try {
-      const local = await validateLocalVoucher(trimmed);
+      const local = await validateLocalVoucher(code);
       if (local.found) {
         setResult({
           status: local.status,
           title: local.title,
           euroValue: local.euroValue,
           staffInstruction: local.staffInstruction,
+          canUndo: local.status === 'valid' || local.status === 'already_used',
         });
-        setCode(trimmed);
+        setCode(code);
         return;
       }
-      const res = await validateStaffVoucher(trimmed);
+
+      if (looksLikeLoyaltyCard(code)) {
+        setError(t('staff.scannedPointsQr'));
+        setCode(code);
+        setScanLocked(false);
+        return;
+      }
+
+      if (isAppVoucherCode(code)) {
+        setError(t('staff.resultUnknown'));
+        setCode(code);
+        setScanLocked(false);
+        return;
+      }
+
+      const res = await validateStaffVoucher(code);
       setResult(res);
-      setCode(trimmed);
-    } catch (err) {
-      setError((err as Error).message);
+      setCode(code);
+    } catch {
+      setError(t('staff.resultUnknown'));
       setScanLocked(false);
     } finally {
       setLoading(false);
     }
-  }, [loading]);
+  }, [loading, t]);
 
   const onBarcodeScanned = useCallback(
     ({ data }: { data: string }) => {
@@ -108,6 +133,39 @@ export default function StaffValidateScreen() {
     setResult(null);
     setError(null);
     setScanLocked(false);
+    setUndoing(false);
+  };
+
+  const confirmUndo = () => {
+    if (!code || undoing) return;
+    Alert.alert(t('staff.undoTitle'), t('staff.undoBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('staff.undoConfirm'), style: 'destructive', onPress: () => void undoValidation() },
+    ]);
+  };
+
+  const undoValidation = async () => {
+    if (!code || undoing) return;
+    setUndoing(true);
+    setError(null);
+    try {
+      const undone = await unvalidateLocalVoucher(code);
+      if (!undone.found) {
+        setError(t('staff.resultUnknown'));
+        return;
+      }
+      setResult({
+        status: undone.status,
+        title: undone.title,
+        euroValue: undone.euroValue,
+        staffInstruction: undone.staffInstruction,
+        canUndo: false,
+      });
+    } catch {
+      setError(t('staff.undoError'));
+    } finally {
+      setUndoing(false);
+    }
   };
 
   const statusUi = result ? STATUS_STYLE[result.status] : null;
@@ -170,7 +228,7 @@ export default function StaffValidateScreen() {
               style={styles.input}
               value={code}
               onChangeText={setCode}
-              placeholder={t('staff.voucherPlaceholder')}
+              placeholder="VD-XXXX-XXXX"
               placeholderTextColor="#999"
               autoCapitalize="characters"
               autoCorrect={false}
@@ -191,6 +249,11 @@ export default function StaffValidateScreen() {
         )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error && !result ? (
+          <TouchableOpacity style={styles.errorReset} onPress={reset}>
+            <Text style={styles.errorResetText}>{t('staff.scanAnother')}</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {result && statusUi ? (
           <View style={[styles.resultBox, { backgroundColor: statusUi.bg }]}>
@@ -205,6 +268,19 @@ export default function StaffValidateScreen() {
               </Text>
             ) : null}
             <Text style={styles.resultMsg}>{t(statusUi.msgKey)}</Text>
+            {result.canUndo ? (
+              <TouchableOpacity
+                style={[styles.undoBtn, undoing && styles.btnDisabled]}
+                onPress={confirmUndo}
+                disabled={undoing}
+              >
+                {undoing ? (
+                  <ActivityIndicator color="#0f172a" />
+                ) : (
+                  <Text style={styles.undoBtnText}>{t('staff.undoValidation')}</Text>
+                )}
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity style={styles.resetBtn} onPress={reset}>
               <Text style={styles.resetBtnText}>{t('staff.scanAnother')}</Text>
             </TouchableOpacity>
@@ -276,7 +352,9 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  error: { color: '#dc2626', textAlign: 'center', marginTop: 16, fontSize: 14 },
+  error: { color: '#dc2626', textAlign: 'center', marginTop: 16, fontSize: 14, lineHeight: 20 },
+  errorReset: { alignSelf: 'center', marginTop: 12, paddingVertical: 8, paddingHorizontal: 16 },
+  errorResetText: { color: Colors.gold, fontWeight: '600', fontSize: 14 },
   resultBox: {
     marginTop: 28,
     borderRadius: 16,
@@ -301,6 +379,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   resultMsg: { color: 'rgba(255,255,255,0.95)', fontSize: 14, marginTop: 10, textAlign: 'center', lineHeight: 20 },
+  undoBtn: {
+    marginTop: 18,
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    minWidth: 180,
+    alignItems: 'center',
+  },
+  undoBtnText: { color: '#0f172a', fontWeight: '700' },
   resetBtn: {
     marginTop: 20,
     paddingHorizontal: 20,

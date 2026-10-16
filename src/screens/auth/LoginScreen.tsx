@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
 import { USE_MOCK } from '../../lib/config';
+import JDLogo from '../../components/JDLogo';
 
 type AuthNav = NativeStackNavigationProp<any>;
 
@@ -36,10 +37,7 @@ export default function LoginScreen() {
       <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
 
       <View style={styles.logoWrap}>
-        <View style={styles.letters}>
-          <Text style={[styles.letter, { color: '#B59363' }]}>J</Text>
-          <Text style={[styles.letter, styles.letterD, { color: '#8E7D65' }]}>D</Text>
-        </View>
+        <JDLogo size="large" />
       </View>
 
       <View style={styles.info}>
@@ -79,21 +77,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  letters: {
-    flexDirection: 'row',
-  },
-  letter: {
-    fontSize: 52,
-    fontStyle: 'italic',
-    fontWeight: '400',
-    lineHeight: 65,
-  },
-  letterD: {
-    marginTop: 5,
-  },
   info: {
     alignItems: 'center',
-    marginTop: 60,
+    marginTop: 24,
     marginBottom: 32,
   },
   title: {

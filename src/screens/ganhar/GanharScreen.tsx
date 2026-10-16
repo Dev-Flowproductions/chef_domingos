@@ -86,6 +86,8 @@ export default function GanharScreen() {
       <View style={styles.titleBlock}>
         <Text style={styles.title}>{t('ganhar.title')}</Text>
         <Text style={styles.body}>{t('ganhar.body')}</Text>
+        <Text style={styles.invoiceHint}>{t('ganhar.invoiceHint')}</Text>
+        <Text style={styles.invoiceHint}>{t('ganhar.posVoucherHint')}</Text>
       </View>
 
       {loading ? (
@@ -129,6 +131,7 @@ const styles = StyleSheet.create({
   titleBlock: { alignItems: 'center', marginBottom: 32 },
   title: { fontSize: 34, fontWeight: '400', color: Colors.gold, textAlign: 'center', marginBottom: 16 },
   body: { fontSize: 18, color: Colors.textPrimary, textAlign: 'center', lineHeight: 28 },
+  invoiceHint: { fontSize: 13, color: '#757575', textAlign: 'center', lineHeight: 20, marginTop: 10 },
   qrWrap: {
     width: 203,
     height: 203,

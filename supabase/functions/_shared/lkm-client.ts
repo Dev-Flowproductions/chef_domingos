@@ -274,6 +274,53 @@ export class LkmApiError extends Error {
  * - GET /v2/GetPoints → plain number (preferred)
  * - GET /v2/Points → number OR [{ points, balance, ... }]
  */
+export function unwrapLkmList<T = unknown>(raw: unknown): T[] {
+  if (Array.isArray(raw)) return raw as T[];
+  if (raw && typeof raw === 'object') {
+    const o = raw as Record<string, unknown>;
+    for (const key of [
+      'Data',
+      'data',
+      'Items',
+      'items',
+      'Transactions',
+      'transactions',
+      'Result',
+      'result',
+      'Value',
+      'value',
+    ]) {
+      if (Array.isArray(o[key])) return o[key] as T[];
+    }
+  }
+  return [];
+}
+
+export async function getAppPointAdjustments(userId: string): Promise<{
+  claimed: number;
+  reversed: number;
+  credited: number;
+}> {
+  const db = serviceDb();
+  const [{ data: claims }, { data: reversals }, { data: credits }] = await Promise.all([
+    db.from('user_offer_claims').select('points_cost').eq('user_id', userId),
+    db.from('points_reversals').select('points').eq('user_id', userId),
+    db.from('points_credits').select('points').eq('user_id', userId),
+  ]);
+  return {
+    claimed: (claims ?? []).reduce((sum, row) => sum + Number(row.points_cost ?? 0), 0),
+    reversed: (reversals ?? []).reduce((sum, row) => sum + Number(row.points ?? 0), 0),
+    credited: (credits ?? []).reduce((sum, row) => sum + Number(row.points ?? 0), 0),
+  };
+}
+
+export function appAvailablePoints(
+  lkmBalance: number,
+  adj: { claimed: number; reversed: number; credited: number },
+): number {
+  return Math.max(0, lkmBalance + adj.credited - adj.claimed - adj.reversed);
+}
+
 export function parseLkmPointsBalance(raw: unknown): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
   if (typeof raw === 'string' && raw.trim() !== '') {

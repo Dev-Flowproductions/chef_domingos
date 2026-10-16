@@ -21,6 +21,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useVouchersStore } from '../../store/vouchersStore';
 import JDLogo from '../../components/JDLogo';
 import { getFallbackCatalog, localizeCatalogItem } from '../../lib/offerI18n';
+import { isLkmPosMoneyPrize } from '../../lib/lkmMoneyPrizes';
 import { formatVoucherExpiry, moneyCooldownRemainingMs } from '../../lib/loyaltyRules';
 import type { RewardsStackParamList } from '../../navigation/types';
 
@@ -78,7 +79,29 @@ export default function RecompensasScreen() {
     setRefreshing(false);
   };
 
-  const handleClaim = async (catalogId: string, title: string, cost: number) => {
+  const openGanhar = () => {
+    navigation.getParent()?.navigate('Ganhar' as never);
+  };
+
+  const handlePosPrize = (title: string, cost: number) => {
+    if (balance < cost) {
+      Alert.alert(
+        t('rewards.insufficientPoints'),
+        t('rewards.needPoints', { cost, title, balance }),
+      );
+      return;
+    }
+    Alert.alert(t('rewards.posPrizeTitle'), t('rewards.posPrizeBody', { title, cost }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('rewards.posPrizeShowQr'), onPress: openGanhar },
+    ]);
+  };
+
+  const handleClaim = async (catalogId: string, title: string, cost: number, euroValue?: number) => {
+    if (isLkmPosMoneyPrize({ pointsCost: cost, euroValue })) {
+      handlePosPrize(title, cost);
+      return;
+    }
     if (hasActiveVoucher) {
       Alert.alert(t('rewards.noStackTitle'), t('rewards.noStackBody'));
       return;
@@ -116,6 +139,10 @@ export default function RecompensasScreen() {
               ]);
             } catch (err) {
               const msg = (err as Error).message;
+              if (msg === 'POS_PRIZE') {
+                handlePosPrize(title, cost);
+                return;
+              }
               if (msg === 'ACTIVE_VOUCHER') {
                 Alert.alert(t('rewards.noStackTitle'), t('rewards.noStackBody'));
                 await fetchMyVouchers();
@@ -141,6 +168,7 @@ export default function RecompensasScreen() {
   };
 
   const list = moneyCatalog.length > 0 ? moneyCatalog : getFallbackCatalog(t);
+  const hasLocalMoney = list.some((item) => !isLkmPosMoneyPrize(item));
   const activeCount = myVouchers.filter((v) => v.state === 'active' || v.state === 'pending').length;
 
   return (
@@ -182,9 +210,9 @@ export default function RecompensasScreen() {
 
         <Text style={[styles.sectionTitle, { marginBottom: 4 }]}>{t('rewards.moneyVouchers')}</Text>
         <Text style={styles.sectionSubtitle}>{t('rewards.moneyVouchersHint')}</Text>
-        {hasActiveVoucher ? (
+        {hasLocalMoney && hasActiveVoucher ? (
           <Text style={styles.cooldownBanner}>{t('rewards.noStackBanner')}</Text>
-        ) : moneyBlocked && moneyCooldownUntil ? (
+        ) : hasLocalMoney && moneyBlocked && moneyCooldownUntil ? (
           <Text style={styles.cooldownBanner}>
             {t('rewards.cooldownBanner', {
               until: formatVoucherExpiry(moneyCooldownUntil, i18n.language),
@@ -198,9 +226,10 @@ export default function RecompensasScreen() {
           <View style={styles.list}>
             {list.map((raw, i) => {
               const v = localizeCatalogItem(raw, t);
-              const disabled = claiming || redeemBlocked;
+              const posPrize = isLkmPosMoneyPrize(v);
+              const disabled = claiming || (!posPrize && redeemBlocked);
               return (
-                <View key={v.id} style={[styles.voucher, redeemBlocked && styles.voucherDimmed]}>
+                <View key={v.id} style={[styles.voucher, !posPrize && redeemBlocked && styles.voucherDimmed]}>
                   <Image
                     source={v.imageUrl ? { uri: v.imageUrl } : FALLBACK_IMAGES[i % 2]}
                     style={styles.voucherBg}
@@ -214,15 +243,17 @@ export default function RecompensasScreen() {
                     <TouchableOpacity
                       style={[styles.vBtn, disabled && styles.vBtnDisabled]}
                       activeOpacity={0.85}
-                      onPress={() => handleClaim(v.id, v.title, v.pointsCost)}
+                      onPress={() => handleClaim(v.id, v.title, v.pointsCost, v.euroValue)}
                       disabled={disabled}
                     >
                       <Text style={styles.vBtnText}>
-                        {hasActiveVoucher
-                          ? t('rewards.noStackShort')
-                          : moneyBlocked
-                            ? t('rewards.cooldownShort')
-                            : t('rewards.redeemForPoints', { count: v.pointsCost })}
+                        {posPrize
+                          ? t('rewards.useAtTill', { count: v.pointsCost })
+                          : hasActiveVoucher
+                            ? t('rewards.noStackShort')
+                            : moneyBlocked
+                              ? t('rewards.cooldownShort')
+                              : t('rewards.redeemForPoints', { count: v.pointsCost })}
                       </Text>
                     </TouchableOpacity>
                   </View>

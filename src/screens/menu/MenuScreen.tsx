@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { getRestaurantMenu, type RestaurantId } from '../../lib/menuI18n';
 import type { HomeStackParamList } from '../../navigation/types';
-import JDLogo from '../../components/JDLogo';
+import RestaurantLogo from '../../components/RestaurantLogo';
 import {
   formatMenuPrice,
   itemsForRestaurant,

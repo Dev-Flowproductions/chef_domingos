@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
 import PasswordInput from '../../components/PasswordInput';
+import JDLogo from '../../components/JDLogo';
 
 export default function RegisterScreen() {
   const insets     = useSafeAreaInsets();
@@ -192,9 +193,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     paddingHorizontal: 32,
   },
-  bg: { position: 'absolute', width: 874, height: 874, left: -275, top: 0, opacity: 0.4 },
-  back: { marginBottom: 16 },
-  backText: { color: Colors.gold, fontSize: 16 },
   logoWrap: { alignItems: 'center', marginBottom: 8 },
   letters: { flexDirection: 'row' },
   letter: { fontSize: 48, fontStyle: 'italic', fontWeight: '400', lineHeight: 60 },

@@ -12,6 +12,7 @@ const FALLBACK_OFFER_KEYS: Record<
     description: string;
     restaurantName: string;
     pointsCost: number;
+    euroValue: number;
     theme: OfferCardTheme;
   }
 > = Object.fromEntries(
@@ -22,6 +23,7 @@ const FALLBACK_OFFER_KEYS: Record<
       description: `offers.${v.id}.description`,
       restaurantName: `offers.${v.id}.tag`,
       pointsCost: v.pts,
+      euroValue: v.euros,
       theme: (i % 2 === 0 ? 'dark' : 'light') as OfferCardTheme,
     },
   ]),
@@ -55,6 +57,7 @@ export function getFallbackCatalog(t: TFunction): CatalogItem[] {
     description: t(keys.description),
     restaurantName: t(keys.restaurantName),
     pointsCost: keys.pointsCost,
+    euroValue: keys.euroValue,
     imageUrl: '',
     restaurantId: '',
     expiresAt: null,

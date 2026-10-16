@@ -38,6 +38,7 @@ interface MenuState {
     descriptionPt?: string;
     descriptionEn?: string;
     priceEuros: number;
+    visibleToCustomers?: boolean;
   }) => Promise<{ error: Error | null }>;
   updateItem: (
     id: string,
@@ -48,9 +49,10 @@ interface MenuState {
       description_en: string | null;
       price_euros: number;
       category_id: string;
+      is_active: boolean;
     }>,
   ) => Promise<{ error: Error | null }>;
-  removeItem: (id: string) => Promise<{ error: Error | null }>;
+  setItemVisibleToCustomers: (id: string, visible: boolean) => Promise<{ error: Error | null }>;
 }
 
 function slugifyKey(name: string): string {
@@ -146,7 +148,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
         description_en: input.descriptionEn?.trim() || null,
         price_euros: input.priceEuros,
         sort_order: sortOrder,
-        is_active: true,
+        is_active: input.visibleToCustomers !== false,
       })
       .select(
         'id, restaurant_id, category_id, item_key, name_pt, name_en, description_pt, description_en, price_euros, sort_order, is_active',
@@ -190,27 +192,25 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     return { error: null };
   },
 
-  removeItem: async (id) => {
-    const { error } = await supabase
-      .from('menu_items')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq('id', id);
-    if (error) return { error: new Error(error.message) };
-    set({ items: get().items.filter((item) => item.id !== id) });
-    return { error: null };
+  setItemVisibleToCustomers: async (id, visible) => {
+    return get().updateItem(id, { is_active: visible });
   },
 }));
 
 export function itemsForRestaurant(
   items: MenuItemRow[],
   restaurantId: RestaurantId,
-  opts?: { forAdminPromo?: boolean },
+  opts?: { forAdminPromo?: boolean; includeInactive?: boolean },
 ): MenuItemRow[] {
   const excluded = new Set(RESTAURANT_MENUS[restaurantId].adminExcludedCategories ?? []);
   return items
-    .filter((i) => i.restaurant_id === restaurantId && i.is_active)
+    .filter((i) => i.restaurant_id === restaurantId)
+    .filter((i) => opts?.includeInactive || i.is_active)
     .filter((i) => !(opts?.forAdminPromo && excluded.has(i.category_id)))
-    .sort((a, b) => a.sort_order - b.sort_order);
+    .sort((a, b) => {
+      if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
+      return a.sort_order - b.sort_order;
+    });
 }
 
 export function toMenuItemRefs(items: MenuItemRow[], restaurantId: RestaurantId): MenuItemRef[] {

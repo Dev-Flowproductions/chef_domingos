@@ -8,7 +8,8 @@ export interface AppTransaction {
   description: string;
   date:        string;
   points:      number;
-  type:        'earn' | 'redeem';
+  type:        'earn' | 'redeem' | 'credit' | 'reversal';
+  expiresAt?:  string | null;
 }
 
 export interface TransactionsResponse {

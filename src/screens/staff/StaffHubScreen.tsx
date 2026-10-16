@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,71 +32,82 @@ export default function StaffHubScreen() {
   );
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
-      <TouchableOpacity style={styles.close} onPress={() => navigation.goBack()}>
-        <Ionicons name="close" size={28} color={Colors.textPrimary} />
-      </TouchableOpacity>
-
-      <Text style={styles.title}>{t('staff.title')}</Text>
-      <Text style={styles.subtitle}>{t('staff.hubSubtitle')}</Text>
-
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate('StaffValidate')}
+    <View style={styles.root}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 },
+        ]}
       >
-        <Ionicons name="qr-code-outline" size={28} color={Colors.gold} />
-        <View style={styles.cardText}>
-          <Text style={styles.cardTitle}>{t('staff.validateTitle')}</Text>
-          <Text style={styles.cardBody}>{t('staff.validateHint')}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color="#999" />
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.close} onPress={() => navigation.goBack()}>
+          <Ionicons name="close" size={28} color={Colors.textPrimary} />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate('StaffRemovePoints')}
-      >
-        <Ionicons name="remove-circle-outline" size={28} color={Colors.gold} />
-        <View style={styles.cardText}>
-          <Text style={styles.cardTitle}>{t('staff.removeTitle')}</Text>
-          <Text style={styles.cardBody}>{t('staff.removeHint')}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color="#999" />
-      </TouchableOpacity>
+        <Text style={styles.title}>{t('staff.title')}</Text>
+        <Text style={styles.subtitle}>{t('staff.hubSubtitle')}</Text>
 
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate('AdminOffers')}
-      >
-        <Ionicons name="cash-outline" size={28} color={Colors.gold} />
-        <View style={styles.cardText}>
-          <Text style={styles.cardTitle}>{t('staff.manageOffers')}</Text>
-          <Text style={styles.cardBody}>{t('staff.manageOffersHint')}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color="#999" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.card}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('StaffValidate')}
+        >
+          <Ionicons name="qr-code-outline" size={28} color={Colors.gold} />
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>{t('staff.validateTitle')}</Text>
+            <Text style={styles.cardBody}>{t('staff.validateHint')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#999" />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate('AdminMenu')}
-      >
-        <Ionicons name="restaurant-outline" size={28} color={Colors.gold} />
-        <View style={styles.cardText}>
-          <Text style={styles.cardTitle}>{t('staff.manageMenu')}</Text>
-          <Text style={styles.cardBody}>{t('staff.manageMenuHint')}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color="#999" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.card}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('StaffRemovePoints')}
+        >
+          <Ionicons name="time-outline" size={28} color={Colors.gold} />
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>{t('staff.historyTitle')}</Text>
+            <Text style={styles.cardBody}>{t('staff.historyHint')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#999" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.card}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('AdminOffers')}
+        >
+          <Ionicons name="ticket-outline" size={28} color={Colors.gold} />
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>{t('staff.manageOffers')}</Text>
+            <Text style={styles.cardBody}>{t('staff.manageOffersHint')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#999" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.card}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('AdminMenu')}
+        >
+          <Ionicons name="restaurant-outline" size={28} color={Colors.gold} />
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>{t('staff.manageMenu')}</Text>
+            <Text style={styles.cardBody}>{t('staff.manageMenuHint')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#999" />
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 20 },
+  root: { flex: 1, backgroundColor: Colors.background },
+  scroll: { paddingHorizontal: 20, flexGrow: 1 },
   close: { alignSelf: 'flex-end', padding: 8 },
   title: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginTop: 8 },
   subtitle: { fontSize: 14, color: '#757575', marginTop: 8, marginBottom: 28 },

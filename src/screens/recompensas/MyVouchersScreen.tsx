@@ -101,8 +101,9 @@ export default function MyVouchersScreen() {
                     </Text>
                   ) : null}
                   <View style={styles.qrWrap}>
-                    <LoyaltyQrImage value={qrValue} size={160} />
+                    <LoyaltyQrImage value={qrValue} size={220} />
                   </View>
+                  <Text style={styles.scanHint}>{t('rewards.voucherScanHint')}</Text>
                   <Text style={styles.code}>{qrValue}</Text>
                   <TouchableOpacity style={styles.copyBtn} onPress={() => void copyCode(qrValue)}>
                     <Text style={styles.copyBtnText}>{t('ganhar.copyCode')}</Text>

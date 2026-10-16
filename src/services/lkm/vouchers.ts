@@ -28,7 +28,8 @@ export type VoucherValidationStatus =
   | 'valid'
   | 'already_used'
   | 'expired'
-  | 'not_active';
+  | 'not_active'
+  | 'restored';
 
 export interface VoucherValidationResult {
   status: VoucherValidationStatus;

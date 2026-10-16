@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -78,19 +79,28 @@ export default function HomeScreen() {
     hasActiveVoucher,
   } = useVouchersStore();
 
+  const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     if (user?.id) fetchProfile(user.id);
   }, [user?.id]);
 
+  const refreshHome = useCallback(async () => {
+    if (!user?.id) return;
+    await Promise.all([fetchPoints(), fetchPromoCatalog(), fetchMyVouchers(), fetchProfile(user.id)]);
+  }, [user?.id, fetchPoints, fetchPromoCatalog, fetchMyVouchers, fetchProfile]);
+
   useFocusEffect(
     useCallback(() => {
       if (!user?.id) return;
-      fetchPoints();
-      fetchPromoCatalog();
-      fetchMyVouchers();
-    }, [user?.id]),
+      void refreshHome();
+    }, [user?.id, refreshHome]),
   );
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshHome();
+    setRefreshing(false);
+  };
   const handlePromoClaim = (id: string, title: string, cost: number) => {
     if (hasActiveVoucher) {
       Alert.alert(t('rewards.noStackTitle'), t('rewards.noStackBody'));
@@ -142,6 +152,9 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />
+        }
       >
         <View style={styles.logoWrap}>
           <JDLogo size="small" />
@@ -156,6 +169,7 @@ export default function HomeScreen() {
             <>
               <Text style={styles.pointsNum}>{Number.isFinite(balance) ? balance : 0}</Text>
               <Text style={styles.pointsLabel}>{t('common.points')}</Text>
+              <Text style={styles.expiryHint}>{t('home.pointsExpiry')}</Text>
               {ptsError ? (
                 <Text style={styles.pointsError}>{t('common.pointsLoadError')}</Text>
               ) : null}
@@ -256,10 +270,9 @@ export default function HomeScreen() {
                   )}
                 </View>
                 <View style={styles.restaurantFooter}>
-                  <View style={styles.restaurantLogo}>
+                  <View style={styles.restaurantLogoWrap}>
                     <RestaurantLogo restaurantId={r.restaurantId} size={54} />
                   </View>
-                  <Text style={styles.restaurantName}>{t(`menu.restaurants.${r.restaurantId}`)}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -282,6 +295,7 @@ const styles = StyleSheet.create({
   pointsNum: { fontSize: 44, fontWeight: '800', color: Colors.gold, lineHeight: 56 },
   pointsLabel: { fontSize: 18, color: Colors.gold, letterSpacing: 1 },
   pointsError: { fontSize: 12, color: '#b45309', marginTop: 8, textAlign: 'center', paddingHorizontal: 16 },
+  expiryHint: { fontSize: 12, color: '#757575', marginTop: 6, textAlign: 'center' },
   section: { marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
   sectionHint: { fontSize: 12, color: '#757575', marginBottom: 4, lineHeight: 16 },
@@ -373,5 +387,5 @@ const styles = StyleSheet.create({
   },
   restaurantFooter: { backgroundColor: '#fff', paddingVertical: 10, alignItems: 'center', gap: 4 },
   restaurantLogo: { width: 54, height: 54, borderRadius: 27, marginTop: -27, backgroundColor: '#fff' },
-  restaurantName: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center', marginTop: 4 },
+  restaurantLogoWrap: { marginTop: -27, backgroundColor: '#fff', borderRadius: 27 },
 });

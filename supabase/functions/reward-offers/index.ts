@@ -2,7 +2,7 @@
 // GET  ?action=catalog&kind=money|promo  → offers not claimed by user (time-window aware for promo)
 // GET  ?action=list                      → user's vouchers
 // GET  ?action=admin-list
-// POST create / claim / deactivate / validateLocal
+// POST create / claim / deactivate / validateLocal / unvalidateLocal
 
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
 import {
@@ -14,6 +14,8 @@ import {
   getClientToken,
   lkmFetch,
   parseLkmPointsBalance,
+  getAppPointAdjustments,
+  appAvailablePoints,
 } from '../_shared/lkm-client.ts';
 
 type OfferKind = 'money' | 'promo';
@@ -27,11 +29,43 @@ function generateVoucherCode(): string {
   return `VD-${seg()}-${seg()}`;
 }
 
-async function isUserAdmin(userId: string): Promise<boolean> {
+async function isUserAdmin(userId: string, email?: string): Promise<boolean> {
+  if (email?.trim().toLowerCase() === 'admin@chefdomingos.app') return true;
   const db = serviceDb();
   const { data, error } = await db.from('users').select('is_admin').eq('id', userId).maybeSingle();
   if (error) throw new Error(error.message);
   return Boolean(data?.is_admin);
+}
+
+function extractVoucherCode(raw: string): string {
+  const trimmed = raw.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  if (!trimmed) return '';
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (typeof parsed === 'string') return extractVoucherCode(parsed);
+    if (parsed && typeof parsed === 'object') {
+      const o = parsed as Record<string, unknown>;
+      for (const key of [
+        'codVoucher',
+        'CodVoucher',
+        'code',
+        'qr',
+        'qrValue',
+        'value',
+        'codCartao',
+        'CodCartao',
+        'cardCode',
+      ]) {
+        if (o[key] != null) return extractVoucherCode(String(o[key]));
+      }
+    }
+  } catch {
+    // not JSON
+  }
+  const compact = trimmed.toUpperCase().replace(/\s+/g, '');
+  const match = compact.match(/VD-[A-Z0-9]{4}-[A-Z0-9]{4}/);
+  if (match) return match[0];
+  return compact;
 }
 
 async function getLkmBalance(userId: string): Promise<number> {
@@ -47,34 +81,27 @@ async function getLkmBalance(userId: string): Promise<number> {
   }
 }
 
-async function getClaimedPoints(userId: string): Promise<number> {
-  const db = serviceDb();
-  const { data } = await db
-    .from('user_offer_claims')
-    .select('points_cost')
-    .eq('user_id', userId);
-  return (data ?? []).reduce((sum, row) => sum + Number(row.points_cost ?? 0), 0);
-}
-
-async function getReversedPoints(userId: string): Promise<number> {
-  const db = serviceDb();
-  const { data } = await db.from('points_reversals').select('points').eq('user_id', userId);
-  return (data ?? []).reduce((sum, row) => sum + Number(row.points ?? 0), 0);
-}
-
 async function getAvailablePoints(userId: string): Promise<number> {
-  const [lkm, claimed, reversed] = await Promise.all([
+  const [lkm, adj] = await Promise.all([
     getLkmBalance(userId),
-    getClaimedPoints(userId),
-    getReversedPoints(userId),
+    getAppPointAdjustments(userId),
   ]);
-  return Math.max(0, lkm - claimed - reversed);
+  return appAvailablePoints(lkm, adj);
 }
 
 function isWithinWindow(startsAt: string | null, endsAt: string | null, nowMs = Date.now()): boolean {
   if (startsAt && new Date(startsAt).getTime() > nowMs) return false;
   if (endsAt && new Date(endsAt).getTime() < nowMs) return false;
   return true;
+}
+
+function isPosMoneyPrize(euro: number, pts: number): boolean {
+  return (
+    (euro === 5 && pts === 500) ||
+    (euro === 10 && pts === 900) ||
+    (euro === 20 && pts === 1700) ||
+    (euro === 30 && pts === 2500)
+  );
 }
 
 /** Last money-voucher claim → cooldown end ISO, or null if clear. */
@@ -133,7 +160,7 @@ async function listCatalog(userId: string, kind: OfferKind) {
   const db = serviceDb();
   const { data: offers, error } = await db
     .from('reward_offers')
-    .select('id, title, description, euro_value, points_cost, offer_kind, starts_at, ends_at, created_at')
+    .select('id, title, description, euro_value, points_cost, offer_kind, starts_at, ends_at, restaurant_id, created_at')
     .eq('is_active', true)
     .eq('offer_kind', kind)
     .order('points_cost', { ascending: true });
@@ -149,7 +176,12 @@ async function listCatalog(userId: string, kind: OfferKind) {
   const hasActiveVoucher = await hasUnusedActiveVoucher(userId);
 
   const catalog = (offers ?? [])
-    .filter((o) => !claimed.has(o.id))
+    .filter((o) => {
+      const euro = Number(o.euro_value ?? 0);
+      const pts = Number(o.points_cost ?? 0);
+      if (kind === 'money' && isPosMoneyPrize(euro, pts)) return true;
+      return !claimed.has(o.id);
+    })
     .filter((o) => kind === 'money' || isWithinWindow(o.starts_at, o.ends_at))
     .map((o) => ({
       id: String(o.id),
@@ -159,8 +191,13 @@ async function listCatalog(userId: string, kind: OfferKind) {
       euroValue: Number(o.euro_value),
       offerKind: String(o.offer_kind ?? kind),
       imageUrl: '',
-      restaurantName: 'Chef Domingos',
-      restaurantId: '',
+      restaurantName:
+        o.restaurant_id === 'portugueseLab'
+          ? 'Portuguese Lab'
+          : o.restaurant_id === 'pizzaLab'
+            ? 'Pizza Lab'
+            : 'Chef Domingos',
+      restaurantId: String(o.restaurant_id ?? ''),
       expiresAt: o.ends_at ? String(o.ends_at) : null,
       startsAt: o.starts_at ? String(o.starts_at) : null,
     }));
@@ -279,6 +316,12 @@ async function claimOffer(userId: string, offerId: string) {
     .eq('id', offerId)
     .single();
   if (offerErr || !offer || !offer.is_active) throw new Error('Offer not found or inactive');
+
+  const claimEuro = Number(offer.euro_value ?? 0);
+  const claimPts = Number(offer.points_cost ?? 0);
+  if (String(offer.offer_kind ?? 'money') === 'money' && isPosMoneyPrize(claimEuro, claimPts)) {
+    throw new Error('POS_PRIZE');
+  }
 
   if (offer.offer_kind === 'promo' && !isWithinWindow(offer.starts_at, offer.ends_at)) {
     throw new Error('This offer is not available right now');
@@ -422,31 +465,34 @@ async function listMyLocalVouchers(userId: string) {
   return vouchers;
 }
 
-async function validateLocal(codVoucher: string) {
+async function findLocalVoucher(code: string) {
   const db = serviceDb();
-  const code = codVoucher.trim();
-  if (!code) {
-    return { status: 'not_active' as const, title: '', euroValue: 0, staffInstruction: '', found: false };
-  }
-
-  let { data: voucher } = await db
-    .from('vouchers')
-    .select(
-      'id, title, state, euro_value, expires_at, active_from, qr_value, lkm_voucher_id, staff_instruction',
-    )
-    .eq('qr_value', code)
-    .maybeSingle();
-
-  if (!voucher) {
-    const second = await db
+  const candidates = [...new Set([code, code.toUpperCase(), code.toLowerCase()].filter(Boolean))];
+  for (const candidate of candidates) {
+    if (!/^[A-Z0-9-]+$/i.test(candidate)) continue;
+    const { data, error } = await db
       .from('vouchers')
       .select(
         'id, title, state, euro_value, expires_at, active_from, qr_value, lkm_voucher_id, staff_instruction',
       )
-      .eq('lkm_voucher_id', code)
+      .or(`qr_value.eq.${candidate},lkm_voucher_id.eq.${candidate}`)
+      .limit(1)
       .maybeSingle();
-    voucher = second.data;
+    if (error) console.warn('[reward-offers] findLocalVoucher', candidate, error.message);
+    if (data) return data;
   }
+  return null;
+}
+
+async function validateLocal(codVoucher: string) {
+  const db = serviceDb();
+  const code = extractVoucherCode(codVoucher);
+  if (!code) {
+    return { status: 'not_active' as const, title: '', euroValue: 0, staffInstruction: '', found: false };
+  }
+
+  const voucher = await findLocalVoucher(code);
+  console.log('[reward-offers] validateLocal', { code, found: Boolean(voucher) });
 
   if (!voucher) {
     return { status: 'not_active' as const, title: '', euroValue: 0, staffInstruction: '', found: false };
@@ -478,6 +524,47 @@ async function validateLocal(codVoucher: string) {
   return { status: 'valid' as const, title, euroValue, staffInstruction, found: true };
 }
 
+async function unvalidateLocal(codVoucher: string) {
+  const db = serviceDb();
+  const code = extractVoucherCode(codVoucher);
+  if (!code) {
+    return { status: 'not_active' as const, title: '', euroValue: 0, staffInstruction: '', found: false };
+  }
+
+  const voucher = await findLocalVoucher(code);
+  if (!voucher) {
+    return { status: 'not_active' as const, title: '', euroValue: 0, staffInstruction: '', found: false };
+  }
+
+  const now = new Date();
+  const expiry = voucher.expires_at ? new Date(String(voucher.expires_at)) : null;
+  const activeAt = voucher.active_from ? new Date(String(voucher.active_from)) : null;
+  const title = String(voucher.title ?? '');
+  const euroValue = Number(voucher.euro_value ?? 0);
+  const staffInstruction = String(voucher.staff_instruction ?? '');
+
+  if (expiry && now > expiry) {
+    await db.from('vouchers').update({ state: 'expired' }).eq('id', voucher.id);
+    return { status: 'expired' as const, title, euroValue, staffInstruction, found: true };
+  }
+
+  if (voucher.state === 'used') {
+    const nextState = activeAt && now < activeAt ? 'pending' : 'active';
+    const { error } = await db
+      .from('vouchers')
+      .update({ state: nextState, used_at: null })
+      .eq('id', voucher.id);
+    if (error) throw new Error(error.message);
+    return { status: 'restored' as const, title, euroValue, staffInstruction, found: true };
+  }
+
+  if (voucher.state === 'active' || voucher.state === 'pending') {
+    return { status: 'restored' as const, title, euroValue, staffInstruction, found: true };
+  }
+
+  return { status: 'expired' as const, title, euroValue, staffInstruction, found: true };
+}
+
 Deno.serve(async (req: Request) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -500,7 +587,7 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ vouchers }, { headers: corsHeaders });
       }
       if (action === 'admin-list') {
-        if (!(await isUserAdmin(user.id))) return errorResponse('Admin access required', 403);
+        if (!(await isUserAdmin(user.id, user.email))) return errorResponse('Admin access required', 403);
         const offers = await adminList();
         return jsonResponse({ offers }, { headers: corsHeaders });
       }
@@ -511,8 +598,13 @@ Deno.serve(async (req: Request) => {
       const body = await req.json() as Record<string, unknown>;
       const action = String(body.action ?? '');
 
-      if (action === 'create' || action === 'deactivate' || action === 'validateLocal') {
-        if (!(await isUserAdmin(user.id))) return errorResponse('Admin access required', 403);
+      if (
+        action === 'create' ||
+        action === 'deactivate' ||
+        action === 'validateLocal' ||
+        action === 'unvalidateLocal'
+      ) {
+        if (!(await isUserAdmin(user.id, user.email))) return errorResponse('Admin access required', 403);
       }
 
       if (action === 'create') {
@@ -545,6 +637,11 @@ Deno.serve(async (req: Request) => {
 
       if (action === 'validateLocal') {
         const result = await validateLocal(String(body.codVoucher ?? ''));
+        return jsonResponse(result, { headers: corsHeaders });
+      }
+
+      if (action === 'unvalidateLocal') {
+        const result = await unvalidateLocal(String(body.codVoucher ?? ''));
         return jsonResponse(result, { headers: corsHeaders });
       }
 

@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -22,6 +23,7 @@ import { useUserStore } from '../../store/userStore';
 import {
   formatMenuPrice,
   itemsForRestaurant,
+  localizedDescription,
   localizedName,
   useMenuStore,
 } from '../../store/menuStore';
@@ -39,15 +41,19 @@ export default function AdminMenuScreen() {
     appMetadata: (user as { app_metadata?: Record<string, unknown> } | null)?.app_metadata,
   });
 
-  const { items, loading, fetchMenus, createItem, updateItem, removeItem } = useMenuStore();
+  const { items, loading, fetchMenus, createItem, updateItem, setItemVisibleToCustomers } =
+    useMenuStore();
   const [restaurantId, setRestaurantId] = useState<RestaurantId>('portugueseLab');
   const [categoryId, setCategoryId] = useState(RESTAURANT_MENUS.portugueseLab.defaultCategory);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState('');
   const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newVisible, setNewVisible] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const categories = RESTAURANT_MENUS[restaurantId].categories;
@@ -58,20 +64,23 @@ export default function AdminMenuScreen() {
         navigation.goBack();
         return;
       }
-      void fetchMenus({ includeInactive: false });
+      void fetchMenus({ includeInactive: true });
     }, [isAdmin, fetchMenus, navigation]),
   );
 
   const categoryItems = useMemo(
     () =>
-      itemsForRestaurant(items, restaurantId).filter((i) => i.category_id === categoryId),
+      itemsForRestaurant(items, restaurantId, { includeInactive: true }).filter(
+        (i) => i.category_id === categoryId,
+      ),
     [items, restaurantId, categoryId],
   );
 
-  const startEdit = (id: string, name: string, price: number) => {
+  const startEdit = (id: string, name: string, price: number, description: string) => {
     setEditingId(id);
     setEditName(name);
     setEditPrice(String(price).replace('.', ','));
+    setEditDescription(description);
     setAdding(false);
   };
 
@@ -83,10 +92,11 @@ export default function AdminMenuScreen() {
       return;
     }
     setSaving(true);
+    const desc = editDescription.trim() || null;
     const updates =
       locale === 'pt'
-        ? { name_pt: editName.trim(), price_euros: price }
-        : { name_en: editName.trim(), price_euros: price };
+        ? { name_pt: editName.trim(), description_pt: desc, price_euros: price }
+        : { name_en: editName.trim(), description_en: desc, price_euros: price };
     const { error } = await updateItem(editingId, updates);
     setSaving(false);
     if (error) {
@@ -108,7 +118,10 @@ export default function AdminMenuScreen() {
       categoryId,
       namePt: newName.trim(),
       nameEn: newName.trim(),
+      descriptionPt: newDescription.trim() || undefined,
+      descriptionEn: newDescription.trim() || undefined,
       priceEuros: price,
+      visibleToCustomers: newVisible,
     });
     setSaving(false);
     if (error) {
@@ -117,35 +130,41 @@ export default function AdminMenuScreen() {
     }
     setNewName('');
     setNewPrice('');
+    setNewDescription('');
+    setNewVisible(true);
     setAdding(false);
   };
 
-  const handleRemove = (id: string, name: string) => {
-    Alert.alert(t('staff.menuRemoveTitle'), t('staff.menuRemoveBody', { name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('staff.menuRemove'),
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await removeItem(id);
-          if (error) Alert.alert(t('common.error'), error.message);
+  const toggleVisibility = (id: string, name: string, currentlyVisible: boolean) => {
+    Alert.alert(
+      currentlyVisible ? t('staff.menuHideTitle') : t('staff.menuShowTitle'),
+      currentlyVisible ? t('staff.menuHideBody', { name }) : t('staff.menuShowBody', { name }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: currentlyVisible ? t('staff.menuHide') : t('staff.menuShow'),
+          onPress: async () => {
+            const { error } = await setItemVisibleToCustomers(id, !currentlyVisible);
+            if (error) Alert.alert(t('common.error'), error.message);
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   return (
     <View style={styles.root}>
       <ScrollView
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.scroll,
           { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 },
         ]}
-        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={loading}
-            onRefresh={() => fetchMenus()}
+            onRefresh={() => fetchMenus({ includeInactive: true })}
             tintColor={Colors.gold}
           />
         }
@@ -200,16 +219,27 @@ export default function AdminMenuScreen() {
 
         {categoryItems.map((item) => {
           const name = localizedName(item, locale);
+          const description = localizedDescription(item, locale) ?? '';
           const isEditing = editingId === item.id;
+          const hidden = !item.is_active;
           return (
-            <View key={item.id} style={styles.itemCard}>
+            <View key={item.id} style={[styles.itemCard, hidden && styles.itemCardHidden]}>
               {isEditing ? (
                 <>
                   <TextInput
                     style={styles.input}
                     value={editName}
                     onChangeText={setEditName}
+                    placeholder={t('staff.menuNewName')}
                     placeholderTextColor="#aaa"
+                  />
+                  <TextInput
+                    style={[styles.input, styles.inputMultiline]}
+                    value={editDescription}
+                    onChangeText={setEditDescription}
+                    placeholder={t('staff.menuDescriptionPlaceholder')}
+                    placeholderTextColor="#aaa"
+                    multiline
                   />
                   <TextInput
                     style={styles.input}
@@ -236,26 +266,53 @@ export default function AdminMenuScreen() {
                   </View>
                 </>
               ) : (
-                <View style={styles.itemRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.itemName}>{name}</Text>
-                    <Text style={styles.itemPrice}>
-                      {formatMenuPrice(item.price_euros, locale)}
-                    </Text>
+                <>
+                  <View style={styles.itemRow}>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.nameRow}>
+                        <Text style={[styles.itemName, hidden && styles.itemNameHidden]}>{name}</Text>
+                        <View style={[styles.badge, hidden ? styles.badgeHidden : styles.badgeLive]}>
+                          <Ionicons
+                            name={hidden ? 'eye-off' : 'eye'}
+                            size={12}
+                            color={hidden ? '#8a5a00' : '#3d6b3d'}
+                          />
+                          <Text style={[styles.badgeText, hidden ? styles.badgeTextHidden : styles.badgeTextLive]}>
+                            {hidden ? t('staff.menuHiddenBadge') : t('staff.menuLiveBadge')}
+                          </Text>
+                        </View>
+                      </View>
+                      {description ? (
+                        <Text style={styles.itemDesc} numberOfLines={2}>
+                          {description}
+                        </Text>
+                      ) : (
+                        <Text style={styles.itemDescMuted}>{t('staff.menuNoDescription')}</Text>
+                      )}
+                      <Text style={styles.itemPrice}>{formatMenuPrice(item.price_euros, locale)}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => startEdit(item.id, name, item.price_euros, description)}
+                      style={styles.iconBtn}
+                    >
+                      <Ionicons name="pencil-outline" size={20} color={Colors.gold} />
+                    </TouchableOpacity>
                   </View>
                   <TouchableOpacity
-                    onPress={() => startEdit(item.id, name, item.price_euros)}
-                    style={styles.iconBtn}
+                    style={[styles.visibilityBtn, hidden && styles.visibilityBtnShow]}
+                    onPress={() => toggleVisibility(item.id, name, item.is_active)}
+                    activeOpacity={0.85}
                   >
-                    <Ionicons name="pencil-outline" size={20} color={Colors.gold} />
+                    <Ionicons
+                      name={hidden ? 'eye-outline' : 'eye-off-outline'}
+                      size={18}
+                      color={hidden ? Colors.gold : '#7a4a12'}
+                    />
+                    <Text style={[styles.visibilityText, hidden && styles.visibilityTextShow]}>
+                      {hidden ? t('staff.menuShowOnApp') : t('staff.menuHideFromApp')}
+                    </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleRemove(item.id, name)}
-                    style={styles.iconBtn}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#B00020" />
-                  </TouchableOpacity>
-                </View>
+                </>
               )}
             </View>
           );
@@ -270,6 +327,15 @@ export default function AdminMenuScreen() {
               onChangeText={setNewName}
               placeholderTextColor="#aaa"
             />
+            <Text style={styles.label}>{t('staff.menuDescription')}</Text>
+            <TextInput
+              style={[styles.input, styles.inputMultiline]}
+              value={newDescription}
+              onChangeText={setNewDescription}
+              placeholder={t('staff.menuDescriptionPlaceholder')}
+              placeholderTextColor="#aaa"
+              multiline
+            />
             <Text style={styles.label}>{t('staff.menuNewPrice')}</Text>
             <TextInput
               style={styles.input}
@@ -279,6 +345,18 @@ export default function AdminMenuScreen() {
               placeholder="0,00"
               placeholderTextColor="#aaa"
             />
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.switchLabel}>{t('staff.menuVisibleToCustomers')}</Text>
+                <Text style={styles.switchHint}>{t('staff.menuVisibleHint')}</Text>
+              </View>
+              <Switch
+                value={newVisible}
+                onValueChange={setNewVisible}
+                trackColor={{ false: '#d8d0c4', true: Colors.goldLight }}
+                thumbColor={newVisible ? Colors.gold : '#f4f3f4'}
+              />
+            </View>
             <View style={styles.rowActions}>
               <TouchableOpacity style={styles.secondaryBtn} onPress={() => setAdding(false)}>
                 <Text style={styles.secondaryBtnText}>{t('common.cancel')}</Text>
@@ -309,7 +387,7 @@ export default function AdminMenuScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingHorizontal: 20 },
+  scroll: { paddingHorizontal: 20, flexGrow: 1 },
   back: { color: Colors.gold, fontSize: 16, marginBottom: 12 },
   title: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
   hint: { fontSize: 14, color: '#757575', marginBottom: 16, lineHeight: 20 },
@@ -335,10 +413,50 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 8,
   },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  itemName: { fontSize: 16, fontWeight: '600', color: Colors.textPrimary },
-  itemPrice: { fontSize: 14, color: '#757575', marginTop: 2 },
+  itemCardHidden: {
+    backgroundColor: '#F7F1E6',
+    borderColor: '#E4D3B0',
+    borderStyle: 'dashed',
+  },
+  itemRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  itemName: { fontSize: 16, fontWeight: '600', color: Colors.textPrimary, flexShrink: 1 },
+  itemNameHidden: { color: '#8a5a00' },
+  itemDesc: { fontSize: 13, color: '#757575', marginTop: 4, lineHeight: 18 },
+  itemDescMuted: { fontSize: 12, color: '#aaa', marginTop: 4, fontStyle: 'italic' },
+  itemPrice: { fontSize: 14, color: '#757575', marginTop: 4 },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  badgeLive: { backgroundColor: '#e8f4e8' },
+  badgeHidden: { backgroundColor: '#f5e6c8' },
+  badgeText: { fontSize: 11, fontWeight: '700' },
+  badgeTextLive: { color: '#3d6b3d' },
+  badgeTextHidden: { color: '#8a5a00' },
   iconBtn: { padding: 8 },
+  visibilityBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#F5EFE4',
+    borderWidth: 1,
+    borderColor: '#E4D3B0',
+  },
+  visibilityBtnShow: {
+    backgroundColor: 'rgba(191,153,78,0.12)',
+    borderColor: Colors.gold,
+  },
+  visibilityText: { fontSize: 13, fontWeight: '700', color: '#7a4a12' },
+  visibilityTextShow: { color: Colors.gold },
   input: {
     borderWidth: 1,
     borderColor: '#e0d8cc',
@@ -349,6 +467,15 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     backgroundColor: '#Faf8f5',
   },
+  inputMultiline: { minHeight: 72, textAlignVertical: 'top' },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  switchLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  switchHint: { fontSize: 12, color: '#757575', marginTop: 2, lineHeight: 16 },
   rowActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   primaryBtn: {
     flex: 1,

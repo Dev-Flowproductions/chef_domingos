@@ -1,64 +1,56 @@
 import React, { useMemo } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Image, View } from 'react-native';
 import QRCode from 'qrcode';
-import { Colors } from '../lib/theme';
+import { qrMatrixToPngDataUri } from '../lib/qrPng';
 
 type Props = {
   value: string;
   size?: number;
 };
 
-export default function LoyaltyQrImage({ value, size = 180 }: Props) {
-  const matrix = useMemo(() => {
+type QrModules = {
+  size: number;
+  data: Uint8Array;
+};
+
+export default function LoyaltyQrImage({ value, size = 200 }: Props) {
+  const image = useMemo(() => {
     try {
-      const qr = QRCode.create(value, { errorCorrectionLevel: 'M' });
-      return { size: qr.modules.size, data: qr.modules.data as Uint8Array };
+      const qr = QRCode.create(value, { errorCorrectionLevel: 'H' });
+      const modules = qr.modules as unknown as QrModules;
+      const n = modules.size;
+      const dark: boolean[] = Array.from(modules.data, (bit) => Boolean(bit));
+      const quiet = 4;
+      const scale = Math.max(4, Math.floor(size / (n + quiet * 2)));
+      return qrMatrixToPngDataUri(dark, n, quiet, scale);
     } catch (err) {
       console.warn('[LoyaltyQrImage] QR generation failed:', err);
       return null;
     }
-  }, [value]);
+  }, [value, size]);
 
-  if (!matrix) {
+  if (!image) {
     return (
-      <View style={[styles.wrap, { width: size, height: size }]}>
-        <View style={styles.failedDot} />
+      <View
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: '#fff',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#EF4444' }} />
       </View>
     );
   }
 
-  const cellSize = size / matrix.size;
-
   return (
-    <View style={{ width: size, height: size, backgroundColor: '#fff' }}>
-      {Array.from({ length: matrix.size }, (_, row) => (
-        <View key={row} style={{ flexDirection: 'row' }}>
-          {Array.from({ length: matrix.size }, (_, col) => {
-            const idx = row * matrix.size + col;
-            const dark = matrix.data[idx] === 1;
-            return (
-              <View
-                key={col}
-                style={{
-                  width: cellSize,
-                  height: cellSize,
-                  backgroundColor: dark ? '#1a1a1a' : '#ffffff',
-                }}
-              />
-            );
-          })}
-        </View>
-      ))}
-    </View>
+    <Image
+      accessibilityLabel="QR"
+      source={{ uri: image.uri }}
+      style={{ width: image.dim, height: image.dim, alignSelf: 'center', backgroundColor: '#fff' }}
+      resizeMode="contain"
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center' },
-  failedDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#EF4444',
-  },
-});

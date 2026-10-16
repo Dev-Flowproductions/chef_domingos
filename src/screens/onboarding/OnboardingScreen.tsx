@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
+import JDLogo from '../../components/JDLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -53,10 +54,7 @@ export default function OnboardingScreen({ onFinish }: OnboardingProps) {
 
       {/* Logo */}
       <View style={[styles.logoWrap, { paddingTop: insets.top + 20 }]}>
-        <View style={styles.letters}>
-          <Text style={[styles.letter, { color: '#B59363' }]}>J</Text>
-          <Text style={[styles.letter, styles.letterD, { color: '#8E7D65' }]}>D</Text>
-        </View>
+        <JDLogo size="small" />
       </View>
 
       {/* Slides */}
@@ -118,18 +116,6 @@ const styles = StyleSheet.create({
   logoWrap: {
     alignItems: 'center',
     marginBottom: 8,
-  },
-  letters: {
-    flexDirection: 'row',
-  },
-  letter: {
-    fontSize: 52,
-    fontStyle: 'italic',
-    fontWeight: '400',
-    lineHeight: 65,
-  },
-  letterD: {
-    marginTop: 5,
   },
   slide: {
     width,

@@ -1,11 +1,15 @@
 /**
  * Chef Domingos loyalty rules (confirmed with LKM).
- * Earn: 1€ = 10 points.
- * Redeem money vouchers: 500→5€, 900→10€, 1700→20€, 2500→30€.
- * Progress bar: 3 fixed money-voucher milestones.
+ * Earn: 1€ = 10 points, credited only after the sale is invoiced on the POS.
+ * Points expire 1 year after the purchase that generated them.
+ * Redeem standard 5/10/20/30€ prizes at WinRest (Resgatar vales e brindes + Ganhar QR).
+ * Progress bar: 3 fixed voucher milestones.
  * Catalog offers: admin-created (defaults seeded in DB).
  */
 export const POINTS_PER_EURO = 10;
+
+/** Points remain valid for one year after the purchase that earned them. */
+export const POINTS_VALIDITY_YEARS = 1;
 
 /** After redeeming a money voucher, block another money redeem for this long. */
 export const MONEY_VOUCHER_COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -68,6 +72,23 @@ export function formatVoucherExpiry(expiresAt: string, locale: string): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+  });
+}
+
+export function pointsExpireAt(purchaseIso: string): Date | null {
+  const d = new Date(purchaseIso);
+  if (!Number.isFinite(d.getTime())) return null;
+  d.setFullYear(d.getFullYear() + POINTS_VALIDITY_YEARS);
+  return d;
+}
+
+export function formatPointsExpiry(purchaseIso: string, locale: string): string | null {
+  const d = pointsExpireAt(purchaseIso);
+  if (!d) return null;
+  return d.toLocaleDateString(locale.startsWith('pt') ? 'pt-PT' : 'en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
 }
 

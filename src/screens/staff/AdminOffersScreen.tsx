@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -208,6 +209,7 @@ export default function AdminOffersScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
+        nestedScrollEnabled
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 }]}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={Colors.gold} />}
@@ -278,7 +280,11 @@ export default function AdminOffersScreen() {
               <Text style={styles.label}>
                 {t('staff.pickMenuItem')} ({menuItems.length})
               </Text>
-              <View style={styles.itemList}>
+              <ScrollView
+                nestedScrollEnabled
+                style={styles.itemListScroll}
+                contentContainerStyle={styles.itemList}
+              >
                 {menuByCategory.map((group) => (
                   <View key={group.categoryId}>
                     <Text style={styles.categoryHeader}>
@@ -301,7 +307,7 @@ export default function AdminOffersScreen() {
                     })}
                   </View>
                 ))}
-              </View>
+              </ScrollView>
 
               <Text style={styles.label}>{t('staff.daysValid')}</Text>
               <TextInput
@@ -368,7 +374,34 @@ export default function AdminOffersScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>{t('staff.existingOffers')}</Text>
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>{t('staff.existingOffers')}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              const active = offers.filter((o) => o.is_active);
+              if (!active.length) {
+                Alert.alert(t('staff.posListEmpty'));
+                return;
+              }
+              const lines = [
+                t('staff.posListHeader'),
+                '',
+                ...active.map((offer) => {
+                  const kind =
+                    offer.offer_kind === 'promo' ? t('staff.kindPromo') : t('staff.kindMoney');
+                  const euros = Number(offer.euro_value) > 0 ? `${offer.euro_value}€ POS` : '';
+                  return `• ${offer.title} — ${kind}${euros ? ` — ${euros}` : ''} — ${offer.points_cost} pts`;
+                }),
+                '',
+                t('staff.posListFooter'),
+              ];
+              void Share.share({ message: lines.join('\n') });
+            }}
+          >
+            <Text style={styles.shareLink}>{t('staff.sharePosList')}</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.posNote}>{t('staff.posListNote')}</Text>
         {loading && offers.length === 0 ? (
           <ActivityIndicator color={Colors.gold} />
         ) : (
@@ -399,7 +432,7 @@ export default function AdminOffersScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingHorizontal: 20 },
+  scroll: { paddingHorizontal: 20, flexGrow: 1 },
   back: { color: Colors.gold, fontSize: 16, marginBottom: 12 },
   title: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
   hint: { fontSize: 14, color: '#757575', marginBottom: 16, lineHeight: 20 },
@@ -448,12 +481,24 @@ const styles = StyleSheet.create({
   chipActive: { borderColor: Colors.gold, backgroundColor: 'rgba(191,153,78,0.12)' },
   chipText: { fontSize: 13, color: Colors.textPrimary },
   chipTextActive: { color: Colors.gold, fontWeight: '700' },
-  itemList: {
+  itemListScroll: {
+    maxHeight: 260,
     borderWidth: 1,
     borderColor: '#E8E0D5',
     borderRadius: 12,
+  },
+  itemList: {
     overflow: 'hidden',
   },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 8,
+  },
+  shareLink: { color: Colors.gold, fontSize: 13, fontWeight: '700' },
+  posNote: { fontSize: 12, color: '#757575', lineHeight: 18, marginBottom: 12 },
   categoryHeader: {
     fontSize: 12,
     fontWeight: '700',

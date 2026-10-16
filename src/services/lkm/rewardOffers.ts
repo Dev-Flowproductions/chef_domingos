@@ -120,3 +120,18 @@ export async function validateLocalVoucher(
     body: { action: 'validateLocal', codVoucher },
   });
 }
+
+export async function unvalidateLocalVoucher(
+  codVoucher: string,
+): Promise<
+  VoucherValidationResult & {
+    found?: boolean;
+    euroValue?: number;
+    staffInstruction?: string;
+  }
+> {
+  return lkmCall('reward-offers', {
+    method: 'POST',
+    body: { action: 'unvalidateLocal', codVoucher },
+  });
+}
