@@ -143,23 +143,27 @@
         },
         "saladaVerao": {
           "name": "Summer salad",
-          "price": "€12.50"
+          "price": "€11.90"
         },
         "risottoRiaFormosa": {
           "name": "Ria Formosa risotto",
-          "price": "€12.50"
+          "price": "€12.50",
+          "description": "Scented with saffron, with shrimp, clams and sea bass fillet."
         },
         "risottoNegro": {
           "name": "Black risotto",
-          "price": "€12.50"
+          "price": "€12.50",
+          "description": "Shrimp and squid, with fleur de sel and fresh herbs."
         },
         "arrozTamboril": {
           "name": "Monkfish rice",
-          "price": "€12.90"
+          "price": "€12.90",
+          "description": "With shrimp and fresh herbs."
         },
         "hamburgerChoco": {
           "name": "Cuttlefish burger",
-          "price": "€12.90"
+          "price": "€12.90",
+          "description": "With shrimp and salmon, on yeast cake, cabbage salad and aromatic potatoes."
         },
         "fileteRobalo": {
           "name": "Sea bass fillet",
@@ -171,7 +175,8 @@
         },
         "lomboSalmao": {
           "name": "Salmon loin",
-          "price": "€15.50"
+          "price": "€15.50",
+          "description": "With sautéed vegetables, sweet potato and coriander olive oil."
         },
         "polvoLagareiro": {
           "name": "Octopus a lagareiro",
@@ -179,31 +184,93 @@
         },
         "tirasChoco": {
           "name": "Cuttlefish strips",
-          "price": "€12.90"
+          "price": "€12.90",
+          "description": "Breaded, served with rice, aromatic potatoes, salad and pickled mayonnaise."
         },
         "bifeNovilhoGrelhado": {
           "name": "Grilled beef steak",
-          "price": "€13.50"
+          "price": "€13.50",
+          "description": "With garlic butter, aromatic potatoes and vegetables."
         },
         "bitoqueChef": {
           "name": "Chef's bitoque",
-          "price": "€13.50"
+          "price": "€13.50",
+          "description": "Grilled beef steak, bacon, egg, potatoes, rice, salad and Portuguese sauce."
         },
         "hamburgerChef": {
           "name": "Chef's burger",
-          "price": "€12.50"
+          "price": "€12.50",
+          "description": "Beef, yeast cake, bacon, fried egg, aromatic potatoes and salad, with mushroom or pepper sauce."
         },
         "pianinhoPorcoIberico": {
           "name": "Iberian pork pianinho",
-          "price": "€13.90"
+          "price": "€13.90",
+          "description": "With barbecue sauce and toasted almonds."
+        },
+        "secretosPorco": {
+          "name": "Alentejo pork secretos",
+          "price": "€12.90",
+          "description": "Slow-grilled, with aromatic potatoes, salad, pineapple, pickles and garlic sauce."
         },
         "risottoCogumelos": {
           "name": "Mushroom risotto",
-          "price": "€12.50"
+          "price": "€12.50",
+          "description": "With asparagus."
         },
         "hamburgerFeijao": {
           "name": "Bean burger",
-          "price": "€12.50"
+          "price": "€12.50",
+          "description": "With soy, nuts and mushrooms on yeast cake, onion and pepper sauce, sweet potato and mixed lettuce."
+        },
+        "risottoEspinafres": {
+          "name": "Spinach risotto",
+          "price": "€11.90",
+          "description": "With ginger and toasted almonds."
+        },
+        "medalhoesNovilho": {
+          "name": "Beef medallions",
+          "price": "€12.90",
+          "description": "With mushroom or pepper sauce, rice and aromatic potatoes."
+        },
+        "escalopesFrango": {
+          "name": "Chicken escalopes",
+          "price": "€11.90",
+          "description": "With mushroom or pepper sauce, rice, aromatic potatoes and crispy onion."
+        },
+        "bifinhoFrango": {
+          "name": "Grilled chicken steak",
+          "price": "€11.90",
+          "description": "With pineapple, aromatic potatoes and sautéed vegetables."
+        },
+        "bifeTuga": {
+          "name": "Portuguese-style steak",
+          "price": "€16.90",
+          "description": "Served with grilled shrimp, fried egg, aromatic potato and rice."
+        },
+        "maminhaNovilho": {
+          "name": "Grilled sirloin",
+          "price": "€12.90",
+          "description": "Served with black beans, rice, seasoned potatoes and pineapple."
+        },
+        "arrozPato": {
+          "name": "Portuguese-style duck rice",
+          "price": "€12.50",
+          "description": "With mixed salad and sausages."
+        },
+        "bacalhauBras": {
+          "name": "Codfish à Brás",
+          "price": "€12.50",
+          "description": "With fresh salad and herb vinaigrette."
+        },
+        "arrozPolvo": {
+          "name": "Algarvian octopus rice",
+          "price": "€12.50",
+          "description": "With aromatic herbs and crispy onion."
+        },
+        "bacalhauNatas": {
+          "name": "Codfish with cream",
+          "price": "€12.50",
+          "description": "Served with grilled shrimp and a mixed salad."
         },
         "sopaDoDia": {
           "name": "Soup of the day",

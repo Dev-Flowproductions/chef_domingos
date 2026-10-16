@@ -143,23 +143,27 @@
         },
         "saladaVerao": {
           "name": "Salada de verão",
-          "price": "12,50€"
+          "price": "11,90€"
         },
         "risottoRiaFormosa": {
           "name": "Risotto da Ria Formosa",
-          "price": "12,50€"
+          "price": "12,50€",
+          "description": "Perfumado com açafrão, camarão, ameijoas e filete de robalo."
         },
         "risottoNegro": {
           "name": "Risotto negro",
-          "price": "12,50€"
+          "price": "12,50€",
+          "description": "Camarão e lulas, com flor de sal e ervas frescas."
         },
         "arrozTamboril": {
           "name": "Arroz de tamboril",
-          "price": "12,90€"
+          "price": "12,90€",
+          "description": "Com camarão e ervas frescas."
         },
         "hamburgerChoco": {
           "name": "Hambúrguer de choco",
-          "price": "12,90€"
+          "price": "12,90€",
+          "description": "Com camarão e salmão, em bolo lêvedo, salada de couve e batatas aromatizadas."
         },
         "fileteRobalo": {
           "name": "Filete de robalo",
@@ -171,7 +175,8 @@
         },
         "lomboSalmao": {
           "name": "Lombo de salmão",
-          "price": "15,50€"
+          "price": "15,50€",
+          "description": "Com legumes salteados, batata doce e azeite aromatizado com coentros."
         },
         "polvoLagareiro": {
           "name": "Polvo à lagareiro",
@@ -179,31 +184,93 @@
         },
         "tirasChoco": {
           "name": "Tiras de choco",
-          "price": "12,90€"
+          "price": "12,90€",
+          "description": "Panadas, servidas com arroz, batata aromatizada, salada e maionese com pickles."
         },
         "bifeNovilhoGrelhado": {
           "name": "Bife de novilho grelhado",
-          "price": "13,50€"
+          "price": "13,50€",
+          "description": "Com manteiga de alho, batatas e legumes aromatizados."
         },
         "bitoqueChef": {
           "name": "Bitoque à chef",
-          "price": "13,50€"
+          "price": "13,50€",
+          "description": "Bife de novilho grelhado, bacon, ovo, batata, arroz, salada e molho à portuguesa."
         },
         "hamburgerChef": {
           "name": "Hambúrguer à chef",
-          "price": "12,50€"
+          "price": "12,50€",
+          "description": "Carne de novilho, bolo lêvedo, bacon, ovo estrelado, batata aromatizada e salada, com molho de cogumelos ou pimenta."
         },
         "pianinhoPorcoIberico": {
           "name": "Pianinho de porco ibérico",
-          "price": "13,90€"
+          "price": "13,90€",
+          "description": "Com molho de barbecue e amêndoas torradas."
+        },
+        "secretosPorco": {
+          "name": "Secretos de porco alentejano",
+          "price": "12,90€",
+          "description": "Grelhados em baixa temperatura, com batata aromatizada, salada, ananás, pickles e molho de alho."
         },
         "risottoCogumelos": {
           "name": "Risoto de cogumelos",
-          "price": "12,50€"
+          "price": "12,50€",
+          "description": "Com espargos."
         },
         "hamburgerFeijao": {
           "name": "Hambúrguer de feijão",
-          "price": "12,50€"
+          "price": "12,50€",
+          "description": "Com soja, nozes e cogumelos em bolo lêvedo, cebolada de pimentos, batata doce e mistura de alfaces."
+        },
+        "risottoEspinafres": {
+          "name": "Risoto de espinafres",
+          "price": "11,90€",
+          "description": "Com gengibre e amêndoas torradas."
+        },
+        "medalhoesNovilho": {
+          "name": "Medalhões de novilho",
+          "price": "12,90€",
+          "description": "Com molho de cogumelos ou pimenta, arroz e batata aromatizada."
+        },
+        "escalopesFrango": {
+          "name": "Escalopes de frango",
+          "price": "11,90€",
+          "description": "Com molho de cogumelos ou pimenta, arroz, batata aromatizada e cebola frita."
+        },
+        "bifinhoFrango": {
+          "name": "Bifinho de frango grelhado",
+          "price": "11,90€",
+          "description": "Com ananás, batata aromatizada e legumes salteados."
+        },
+        "bifeTuga": {
+          "name": "Bife à tuga",
+          "price": "16,90€",
+          "description": "Servido com camarão grelhado, ovo, batata aromática e arroz."
+        },
+        "maminhaNovilho": {
+          "name": "Maminha de novilho grelhada",
+          "price": "12,90€",
+          "description": "Servida com feijão preto, arroz, batata aromática e ananás."
+        },
+        "arrozPato": {
+          "name": "Arroz de pato à portuguesa",
+          "price": "12,50€",
+          "description": "Com mistura de alfaces e enchidos."
+        },
+        "bacalhauBras": {
+          "name": "Bacalhau à Brás",
+          "price": "12,50€",
+          "description": "Com salada fresca e vinagrete de ervas."
+        },
+        "arrozPolvo": {
+          "name": "Arroz de polvo à algarvia",
+          "price": "12,50€",
+          "description": "Com ervas aromáticas e cebola frita."
+        },
+        "bacalhauNatas": {
+          "name": "Bacalhau com natas",
+          "price": "12,50€",
+          "description": "Servido com camarão grelhado e salada mista."
         },
         "sopaDoDia": {
           "name": "Sopa do dia",

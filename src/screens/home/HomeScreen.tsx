@@ -22,6 +22,7 @@ import { useUserStore } from '../../store/userStore';
 import { usePointsStore } from '../../store/pointsStore';
 import { useVouchersStore } from '../../store/vouchersStore';
 import JDLogo from '../../components/JDLogo';
+import RestaurantLogo from '../../components/RestaurantLogo';
 import {
   getFallbackOfferImage,
   getOfferCardTheme,
@@ -36,7 +37,7 @@ const CARD_W = width * 0.75;
 const RESTAURANTS: {
   id: string;
   restaurantId: RestaurantId;
-  image: number;
+  image: number | null;
   imageScale: number;
   imageBg: string;
 }[] = [
@@ -50,9 +51,9 @@ const RESTAURANTS: {
   {
     id: '2',
     restaurantId: 'pizzaLab',
-    image: require('../../assets/pizza-lab-food.jpg'),
-    imageScale: 2.15,
-    imageBg: '#1a1a1a',
+    image: null,
+    imageScale: 1,
+    imageBg: '#FEFCF3',
   },
 ];
 
@@ -239,18 +240,25 @@ export default function HomeScreen() {
                 activeOpacity={0.9}
               >
                 <View style={[styles.restaurantImgWrap, { backgroundColor: r.imageBg }]}>
-                  <Image
-                    source={r.image}
-                    style={[styles.restaurantImg, { transform: [{ scale: r.imageScale }] }]}
-                    resizeMode="cover"
-                  />
+                  {r.image ? (
+                    <Image
+                      source={r.image}
+                      style={[styles.restaurantImg, { transform: [{ scale: r.imageScale }] }]}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Image
+                      source={require('../../assets/pizza-lab-logo.png')}
+                      style={styles.pizzaLogo}
+                      resizeMode="contain"
+                      accessibilityLabel="Pizza Lab"
+                    />
+                  )}
                 </View>
                 <View style={styles.restaurantFooter}>
-                  <Image
-                    source={require('../../assets/restaurant-logo.png')}
-                    style={styles.restaurantLogo}
-                    resizeMode="contain"
-                  />
+                  <View style={styles.restaurantLogo}>
+                    <RestaurantLogo restaurantId={r.restaurantId} size={54} />
+                  </View>
                   <Text style={styles.restaurantName}>{t(`menu.restaurants.${r.restaurantId}`)}</Text>
                 </View>
               </TouchableOpacity>
@@ -358,6 +366,10 @@ const styles = StyleSheet.create({
   restaurantImg: {
     width: '100%',
     height: '100%',
+  },
+  pizzaLogo: {
+    width: '88%',
+    height: '72%',
   },
   restaurantFooter: { backgroundColor: '#fff', paddingVertical: 10, alignItems: 'center', gap: 4 },
   restaurantLogo: { width: 54, height: 54, borderRadius: 27, marginTop: -27, backgroundColor: '#fff' },
