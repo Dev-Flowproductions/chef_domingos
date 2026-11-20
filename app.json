@@ -20,7 +20,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "A app Chef Domingos precisa da câmara para ler o QR dos vouchers dos clientes."
       },
-      "buildNumber": "9"
+      "buildNumber": "10"
     },
     "android": {
       "package": "pt.chefdomingos.loyalty",
@@ -34,7 +34,8 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "versionCode": 12
     },
     "web": {
       "favicon": "./assets/favicon.png"
