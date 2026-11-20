@@ -51,6 +51,7 @@ export interface LkmProfile {
   linked:              boolean;
   cardCode?:           string;
   shortCode?:          string;
+  hasAccessToken?:     boolean;
   needsRegistration?:  boolean;
   errorMessage?:       string;
   lkmProfile?:         Record<string, unknown>;

@@ -18,7 +18,6 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
 import PasswordInput from '../../components/PasswordInput';
-import JDLogo from '../../components/JDLogo';
 
 export default function RegisterScreen() {
   const insets     = useSafeAreaInsets();
@@ -59,8 +58,8 @@ export default function RegisterScreen() {
 
   if (done) {
     return (
-      <View style={[styles.container, styles.successContainer, { paddingTop: insets.top + 40 }]}>
-        <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+      <View style={[styles.screen, styles.successContainer, { paddingTop: insets.top + 40, paddingHorizontal: 32 }]}>
+        <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" pointerEvents="none" />
         <Text style={styles.successIcon}>✉️</Text>
         <Text style={styles.successTitle}>{t('auth.verifyEmailTitle')}</Text>
         <Text style={styles.successBody}>
@@ -82,15 +81,16 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" pointerEvents="none" />
       <ScrollView
-        contentContainerStyle={[styles.container, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 80 }]}
+        style={styles.scroll}
+        contentContainerStyle={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
-
         <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
@@ -188,11 +188,23 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1 },
   container: {
     flexGrow: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
     paddingHorizontal: 32,
   },
+  bg: {
+    position: 'absolute',
+    width: 874,
+    height: 874,
+    left: -275,
+    top: 0,
+    opacity: 0.4,
+  },
+  back: { alignSelf: 'flex-start', marginBottom: 8 },
+  backText: { color: Colors.gold, fontSize: 16 },
   logoWrap: { alignItems: 'center', marginBottom: 8 },
   letters: { flexDirection: 'row' },
   letter: { fontSize: 48, fontStyle: 'italic', fontWeight: '400', lineHeight: 60 },

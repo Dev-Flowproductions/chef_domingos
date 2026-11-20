@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Assets } from '../../lib/theme';
 import { getRestaurantMenu, type RestaurantId } from '../../lib/menuI18n';
 import type { HomeStackParamList } from '../../navigation/types';
-import RestaurantLogo from '../../components/RestaurantLogo';
+import JDLogo from '../../components/JDLogo';
 import {
   formatMenuPrice,
   itemsForRestaurant,
@@ -53,11 +53,8 @@ export default function MenuScreen() {
 
   return (
     <View style={styles.root}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
-      >
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" pointerEvents="none" />
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
@@ -73,6 +70,7 @@ export default function MenuScreen() {
 
         <ScrollView
           horizontal
+          nestedScrollEnabled
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.catList}
           style={styles.catScroll}
@@ -92,7 +90,14 @@ export default function MenuScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+      </View>
 
+      <ScrollView
+        style={styles.scrollView}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scroll, { paddingBottom: (insets.bottom || 8) + 88 }]}
+      >
         <Text style={styles.sectionHeading}>
           {t(`menu.${restaurantId}.categories.${activeCategory}`, {
             defaultValue: activeCategory,
@@ -106,10 +111,10 @@ export default function MenuScreen() {
             {categoryItems.map((item, idx) => {
               const description = localizedDescription(item, locale);
               return (
-                <View key={item.id}>
+                <View key={item.id || `${item.item_key}-${idx}`}>
                   <View style={styles.menuRow}>
                     <View style={styles.menuNameBlock}>
-                      <Text style={styles.menuName}>{localizedName(item, locale)}</Text>
+                      <Text style={styles.menuName}>{localizedName(item, locale) || item.item_key}</Text>
                       {description ? (
                         <Text style={styles.menuDescription}>{description}</Text>
                       ) : null}
@@ -136,6 +141,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  scrollView: { flex: 1 },
+  header: { paddingHorizontal: 20 },
   bg: {
     position: 'absolute',
     width: 874,

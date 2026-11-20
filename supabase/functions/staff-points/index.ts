@@ -134,8 +134,8 @@ function mapLkmTransaction(
   user: UserRow,
   tx: LkmTransaction,
   reversedIds: Set<string>,
-): AdminTransaction | null {
-  if (tx.IsCanceled) return null;
+): AdminTransaction[] {
+  if (tx.IsCanceled) return [];
   const earned = Number(tx.Pontos ?? 0);
   const redeemed = Number(tx.Pontos_resgatados ?? 0);
   const date = tx.DATAHORA ?? new Date().toISOString();
@@ -143,9 +143,11 @@ function mapLkmTransaction(
   const restaurant = tx.LOJA ?? 'Restaurante';
   const amountPaid = Number(tx.Valor_pago ?? tx.Valor_compra ?? 0);
 
-  if (redeemed > 0 && earned <= 0) {
-    return stampTx(user, {
-      id,
+  const rows: Array<Omit<AdminTransaction, 'userId' | 'userName' | 'userEmail' | 'cardCode'> | null> = [];
+
+  if (redeemed > 0) {
+    rows.push({
+      id: earned > 0 ? `${id}-redeem` : id,
       restaurant,
       description: 'Resgate',
       date,
@@ -153,23 +155,28 @@ function mapLkmTransaction(
       type: 'redeem',
       expiresAt: null,
       amountPaid,
+      reversible: false,
+      alreadyReversed: false,
     });
   }
 
-  if (earned === 0 && redeemed === 0) return null;
-  const alreadyReversed = Boolean(id) && reversedIds.has(id);
-  return stampTx(user, {
-    id,
-    restaurant,
-    description: 'Compra faturada',
-    date,
-    points: earned,
-    type: 'earn',
-    expiresAt: addOneYear(date),
-    amountPaid,
-    reversible: earned > 0 && Boolean(id) && !alreadyReversed,
-    alreadyReversed,
-  });
+  if (earned > 0) {
+    const alreadyReversed = Boolean(id) && reversedIds.has(id);
+    rows.push({
+      id,
+      restaurant,
+      description: 'Compra faturada',
+      date,
+      points: earned,
+      type: 'earn',
+      expiresAt: addOneYear(date),
+      amountPaid,
+      reversible: Boolean(id) && !alreadyReversed,
+      alreadyReversed,
+    });
+  }
+
+  return rows.filter((row): row is NonNullable<typeof row> => row != null).map((row) => stampTx(user, row));
 }
 
 function mapLocalRow(
@@ -238,26 +245,46 @@ async function reversedLkmIds(userId: string): Promise<Set<string>> {
   return new Set((data ?? []).map((r) => String(r.lkm_tx_id)));
 }
 
-async function fetchLkmMapped(user: UserRow): Promise<AdminTransaction[]> {
+async function fetchLkmMapped(user: UserRow, maxPages = 1): Promise<AdminTransaction[]> {
   if (!user.lkm_access_token) return [];
   const reversedIds = await reversedLkmIds(user.id);
   try {
     const clientToken = await getClientToken(user.lkm_access_token);
-    let raw: unknown = [];
-    try {
-      raw = await lkmFetch<unknown>('/v2/Transactions/v2', {
-        clientToken,
-        queryParams: { perPage: 50, page: 1, contaCartao: true },
-      });
-    } catch {
-      raw = await lkmFetch<unknown>('/v2/Transactions/CardTransactions', {
-        clientToken,
-        queryParams: { perPage: 50, page: 1, contaCartao: true },
-      }).catch(() => []);
+    const items: LkmTransaction[] = [];
+    const seen = new Set<string>();
+
+    for (let page = 1; page <= maxPages; page++) {
+      let raw: unknown = [];
+      try {
+        raw = await lkmFetch<unknown>('/v2/Transactions/v2', {
+          clientToken,
+          queryParams: { perPage: 50, page, contaCartao: true },
+        });
+      } catch (err) {
+        if (page > 1) break;
+        raw = await lkmFetch<unknown>('/v2/Transactions/CardTransactions', {
+          clientToken,
+          queryParams: { perPage: 50, page, contaCartao: true },
+        }).catch(() => []);
+        if (!raw) console.warn('[staff-points] LKM page failed', user.id, err);
+      }
+
+      const pageItems = unwrapLkmList<LkmTransaction>(raw);
+      if (pageItems.length === 0) break;
+      let added = 0;
+      for (const tx of pageItems) {
+        const id = tx.COD_TRANSACCAO == null ? '' : String(tx.COD_TRANSACCAO);
+        if (id && seen.has(id)) continue;
+        if (id) seen.add(id);
+        items.push(tx);
+        added += 1;
+      }
+      if (added === 0 || pageItems.length < 50) break;
     }
-    return unwrapLkmList<LkmTransaction>(raw)
-      .map((tx) => mapLkmTransaction(user, tx, reversedIds))
-      .filter((tx): tx is AdminTransaction => Boolean(tx) && tx.points !== 0);
+
+    return items
+      .flatMap((tx) => mapLkmTransaction(user, tx, reversedIds))
+      .filter((tx) => tx.points !== 0);
   } catch (err) {
     console.warn('[staff-points] LKM txs failed', user.id, err);
     return [];
@@ -400,7 +427,7 @@ function earnRows(history: AdminTransaction[]) {
 
 async function buildCustomerPayload(user: UserRow) {
   const [lkmTxs, localTxs, balance] = await Promise.all([
-    fetchLkmMapped(user),
+    fetchLkmMapped(user, 4),
     fetchLocalHistory([user]),
     availableBalance(user.id, user.lkm_access_token).catch(() => 0),
   ]);
@@ -499,7 +526,7 @@ async function handleReverse(opts: {
   let restaurant = 'Restaurante';
 
   if (txId) {
-    const lkmTxs = await fetchLkmMapped(user);
+    const lkmTxs = await fetchLkmMapped(user, 4);
     const match = lkmTxs.find((t) => t.id === txId && t.type === 'earn' && t.points > 0);
     if (!match) {
       return errorResponse('Transação não encontrada ou sem pontos.', 404);

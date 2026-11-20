@@ -45,32 +45,84 @@ function addOneYear(iso: string): string | null {
   return d.toISOString();
 }
 
-function mapTransaction(tx: LkmTransaction): AppTransaction {
-  const earned   = Number(tx.Pontos ?? 0);
+function mapTransaction(tx: LkmTransaction): AppTransaction[] {
+  const earned = Number(tx.Pontos ?? 0);
   const redeemed = Number(tx.Pontos_resgatados ?? 0);
-  const date     = tx.DATAHORA ?? new Date().toISOString();
+  const date = tx.DATAHORA ?? new Date().toISOString();
+  const id = String(tx.COD_TRANSACCAO ?? `lkm-${date}`);
+  const restaurant = tx.LOJA ?? 'Restaurante';
+  const rows: AppTransaction[] = [];
 
-  if (redeemed > 0 && earned <= 0) {
-    return {
-      id:          String(tx.COD_TRANSACCAO ?? `lkm-${date}`),
-      restaurant:  tx.LOJA ?? 'Restaurante',
+  if (redeemed > 0) {
+    rows.push({
+      id: earned > 0 ? `${id}-redeem` : id,
+      restaurant,
       description: 'Resgate',
       date,
-      points:      -Math.abs(redeemed),
-      type:        'redeem',
-      expiresAt:   null,
-    };
+      points: -Math.abs(redeemed),
+      type: 'redeem',
+      expiresAt: null,
+    });
   }
 
-  return {
-    id:          String(tx.COD_TRANSACCAO ?? `lkm-${date}`),
-    restaurant:  tx.LOJA ?? 'Restaurante',
-    description: 'Compra faturada',
-    date,
-    points:      earned,
-    type:        'earn',
-    expiresAt:   addOneYear(date),
-  };
+  if (earned > 0) {
+    rows.push({
+      id,
+      restaurant,
+      description: 'Compra faturada',
+      date,
+      points: earned,
+      type: 'earn',
+      expiresAt: addOneYear(date),
+    });
+  }
+
+  return rows;
+}
+
+const LKM_PAGE_SIZE = 50;
+const LKM_MAX_PAGES = 6;
+
+async function fetchLkmTransactions(clientToken: string): Promise<LkmTransaction[]> {
+  const all: LkmTransaction[] = [];
+  const seen = new Set<string>();
+
+  for (let page = 1; page <= LKM_MAX_PAGES; page++) {
+    let raw: unknown = [];
+    try {
+      raw = await lkmFetch<unknown>('/v2/Transactions/v2', {
+        clientToken,
+        queryParams: { perPage: LKM_PAGE_SIZE, page, contaCartao: true },
+      });
+    } catch (firstErr) {
+      if (page > 1) break;
+      console.warn('[lkm-transactions] v2 fallback CardTransactions', firstErr);
+      try {
+        raw = await lkmFetch<unknown>('/v2/Transactions/CardTransactions', {
+          clientToken,
+          queryParams: { perPage: LKM_PAGE_SIZE, page, contaCartao: true },
+        });
+      } catch (secondErr) {
+        console.warn('[lkm-transactions] CardTransactions failed', secondErr);
+        break;
+      }
+    }
+
+    const items = unwrapLkmList<LkmTransaction>(raw);
+    if (items.length === 0) break;
+
+    let added = 0;
+    for (const tx of items) {
+      const id = tx.COD_TRANSACCAO == null ? '' : String(tx.COD_TRANSACCAO);
+      if (id && seen.has(id)) continue;
+      if (id) seen.add(id);
+      all.push(tx);
+      added += 1;
+    }
+    if (added === 0 || items.length < LKM_PAGE_SIZE) break;
+  }
+
+  return all;
 }
 
 function mapLocalRow(row: {
@@ -113,30 +165,11 @@ Deno.serve(async (req: Request) => {
     const page    = Number(url.searchParams.get('page') ?? '1');
     const perPage = Number(url.searchParams.get('perPage') ?? '20');
 
-    let raw: unknown = [];
-    try {
-      raw = await lkmFetch<unknown>('/v2/Transactions/v2', {
-        clientToken,
-        queryParams: { perPage, page, contaCartao: true },
-      });
-    } catch (firstErr) {
-      console.warn('[lkm-transactions] v2 fallback CardTransactions', firstErr);
-      try {
-        raw = await lkmFetch<unknown>('/v2/Transactions/CardTransactions', {
-          clientToken,
-          queryParams: { perPage, page, contaCartao: true },
-        });
-      } catch (secondErr) {
-        console.warn('[lkm-transactions] CardTransactions failed', secondErr);
-        raw = [];
-      }
-    }
-
-    const items = unwrapLkmList<LkmTransaction>(raw);
+    const items = await fetchLkmTransactions(clientToken);
 
     const lkmTxs: AppTransaction[] = items
       .filter((tx) => !tx.IsCanceled)
-      .map(mapTransaction)
+      .flatMap(mapTransaction)
       .filter((t) => t.points !== 0);
 
     const db = serviceDb();
@@ -197,10 +230,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const start = Math.max(0, (page - 1) * perPage);
+    const hasMore = transactions.length > start + perPage;
     transactions = transactions.slice(start, start + perPage);
 
     return jsonResponse(
-      { transactions, page, perPage, filter },
+      { transactions, page, perPage, filter, hasMore },
       { headers: corsHeaders },
     );
   } catch (err) {

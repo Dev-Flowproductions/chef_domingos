@@ -50,6 +50,7 @@ export default function LegalScreen() {
     <View style={styles.root}>
       <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 }]}
       >
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -83,6 +84,7 @@ export default function LegalScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  scrollView: { flex: 1 },
   bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   back: { color: Colors.gold, fontSize: 16, marginBottom: 16 },

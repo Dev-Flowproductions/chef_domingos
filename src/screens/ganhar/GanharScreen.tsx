@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -76,9 +77,17 @@ export default function GanharScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
-
+    <View style={styles.container}>
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" pointerEvents="none" />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + 12, paddingBottom: (insets.bottom || 8) + 96 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={styles.logoWrap}>
         <JDLogo size="small" />
       </View>
@@ -115,6 +124,7 @@ export default function GanharScreen() {
           </TouchableOpacity>
         </>
       )}
+      </ScrollView>
     </View>
   );
 }
@@ -123,6 +133,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  scroll: { flex: 1 },
+  scrollContent: {
     paddingHorizontal: 24,
     alignItems: 'center',
   },

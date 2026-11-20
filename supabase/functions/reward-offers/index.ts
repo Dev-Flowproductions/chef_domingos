@@ -1,33 +1,65 @@
 // reward-offers Edge Function
-// GET  ?action=catalog&kind=money|promo  → offers not claimed by user (time-window aware for promo)
+// GET  ?action=catalog&kind=money|promo  → till catalog (money prizes already in Mytarget)
 // GET  ?action=list                      → user's vouchers
 // GET  ?action=admin-list
-// POST create / claim / deactivate / validateLocal / unvalidateLocal
+// GET  ?action=visibility
+// POST setVisibility / activateCatalog / claim / deactivate / validateLocal / unvalidateLocal
 
-import { corsHeaders, handleCors } from '../_shared/cors.ts';
-import {
-  getSupabaseUser,
-  serviceDb,
-  jsonResponse,
-  errorResponse,
-  getLkmCard,
-  getClientToken,
-  lkmFetch,
-  parseLkmPointsBalance,
-  getAppPointAdjustments,
-  appAvailablePoints,
-} from '../_shared/lkm-client.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
+
+function handleCors(req: Request): Response | null {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  return null;
+}
+
+function serviceDb() {
+  return createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
+}
+
+async function getSupabaseUser(req: Request) {
+  const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
+  if (!token) throw new Error('Missing Authorization header');
+  const db = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: `Bearer ${token}` } } },
+  );
+  const { data, error } = await db.auth.getUser();
+  if (error || !data.user) throw new Error('Invalid or expired session');
+  return { user: data.user, token };
+}
+
+function jsonResponse(
+  data: unknown,
+  init: ResponseInit & { headers?: Record<string, string> } = {},
+) {
+  const { headers = {}, ...rest } = init;
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    ...rest,
+    headers: { 'Content-Type': 'application/json', ...headers },
+  });
+}
+
+function errorResponse(message: string, status = 400) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
+  });
+}
 
 type OfferKind = 'money' | 'promo';
 
 const MONEY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
-function generateVoucherCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const seg = () =>
-    Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  return `VD-${seg()}-${seg()}`;
-}
 
 async function isUserAdmin(userId: string, email?: string): Promise<boolean> {
   if (email?.trim().toLowerCase() === 'admin@chefdomingos.app') return true;
@@ -68,40 +100,131 @@ function extractVoucherCode(raw: string): string {
   return compact;
 }
 
-async function getLkmBalance(userId: string): Promise<number> {
-  try {
-    const { accessToken } = await getLkmCard(userId);
-    const clientToken = await getClientToken(accessToken);
-    const balanceRaw = await lkmFetch<unknown>('/v2/GetPoints', { clientToken }).catch(() =>
-      lkmFetch<unknown>('/v2/Points', { clientToken }),
-    );
-    return parseLkmPointsBalance(balanceRaw);
-  } catch {
-    return 0;
+type PosDiscountKind = 'money' | 'percent' | 'article';
+
+type PosDiscount = {
+  id: string;
+  kind: PosDiscountKind;
+  pointsCost: number | null;
+  euroValue: number | null;
+  tillReady: boolean;
+};
+
+/** Keep in sync with src/lib/posDiscountCatalog.ts */
+const POS_DISCOUNT_CATALOG: readonly PosDiscount[] = [
+  { id: 'money-5', kind: 'money', pointsCost: 500, euroValue: 5, tillReady: true },
+  { id: 'money-10', kind: 'money', pointsCost: 900, euroValue: 10, tillReady: true },
+  { id: 'money-20', kind: 'money', pointsCost: 1700, euroValue: 20, tillReady: true },
+  { id: 'money-30', kind: 'money', pointsCost: 2500, euroValue: 30, tillReady: true },
+  { id: 'percent-10', kind: 'percent', pointsCost: 400, euroValue: null, tillReady: true },
+  { id: 'percent-20', kind: 'percent', pointsCost: 700, euroValue: null, tillReady: true },
+  { id: 'percent-30', kind: 'percent', pointsCost: 1000, euroValue: null, tillReady: true },
+  { id: 'special-romantic', kind: 'article', pointsCost: 600, euroValue: null, tillReady: true },
+  { id: 'special-friends', kind: 'article', pointsCost: 650, euroValue: null, tillReady: true },
+];
+
+function isPosMoneyPrize(euro: number, pts: number): boolean {
+  return POS_DISCOUNT_CATALOG.some(
+    (discount) =>
+      discount.kind === 'money' &&
+      discount.tillReady &&
+      discount.euroValue === euro &&
+      discount.pointsCost === pts,
+  );
+}
+
+function findPosDiscount(id: string): PosDiscount | undefined {
+  return POS_DISCOUNT_CATALOG.find((discount) => discount.id === id);
+}
+
+type DiscountVisibility = { hidden: boolean; visibleFrom: string | null };
+
+function defaultDiscountHidden(kind: PosDiscountKind): boolean {
+  switch (kind) {
+    case 'money':
+      return false;
+    case 'percent':
+    case 'article':
+      return true;
+    default: {
+      const unexpected: never = kind;
+      return unexpected;
+    }
   }
 }
 
-async function getAvailablePoints(userId: string): Promise<number> {
-  const [lkm, adj] = await Promise.all([
-    getLkmBalance(userId),
-    getAppPointAdjustments(userId),
-  ]);
-  return appAvailablePoints(lkm, adj);
+function lisbonToday(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Lisbon',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
 }
 
-function isWithinWindow(startsAt: string | null, endsAt: string | null, nowMs = Date.now()): boolean {
-  if (startsAt && new Date(startsAt).getTime() > nowMs) return false;
-  if (endsAt && new Date(endsAt).getTime() < nowMs) return false;
-  return true;
+function isDiscountVisible(
+  discount: PosDiscount,
+  visibility: DiscountVisibility | undefined,
+  today: string,
+): boolean {
+  const hidden = visibility?.hidden ?? defaultDiscountHidden(discount.kind);
+  if (hidden) return false;
+  const from = visibility?.visibleFrom;
+  if (!from) return true;
+  return from <= today;
 }
 
-function isPosMoneyPrize(euro: number, pts: number): boolean {
-  return (
-    (euro === 5 && pts === 500) ||
-    (euro === 10 && pts === 900) ||
-    (euro === 20 && pts === 1700) ||
-    (euro === 30 && pts === 2500)
-  );
+function parseIsoDate(value: unknown): string | null {
+  if (value == null || value === '') return null;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error('Invalid date');
+  }
+  const [year, month, day] = value.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new Error('Invalid date');
+  }
+  return value;
+}
+
+async function listVisibility(): Promise<Map<string, DiscountVisibility>> {
+  const db = serviceDb();
+  const { data, error } = await db
+    .from('pos_discount_visibility')
+    .select('catalog_id, hidden, visible_from');
+  if (error) {
+    console.warn('[reward-offers] visibility', error.message);
+    return new Map();
+  }
+  const map = new Map<string, DiscountVisibility>();
+  for (const row of data ?? []) {
+    map.set(String(row.catalog_id), {
+      hidden: Boolean(row.hidden),
+      visibleFrom: row.visible_from ? String(row.visible_from).slice(0, 10) : null,
+    });
+  }
+  return map;
+}
+
+async function setVisibility(catalogKey: string, hidden: unknown, visibleFrom: unknown) {
+  const item = findPosDiscount(catalogKey);
+  if (!item) throw new Error('Unknown discount');
+  if (typeof hidden !== 'boolean') throw new Error('Invalid visibility');
+  const date = parseIsoDate(visibleFrom);
+
+  const db = serviceDb();
+  const { error } = await db.from('pos_discount_visibility').upsert({
+    catalog_id: catalogKey,
+    hidden,
+    visible_from: date,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(error.message);
+  return { catalogId: catalogKey, hidden, visibleFrom: date };
 }
 
 /** Last money-voucher claim → cooldown end ISO, or null if clear. */
@@ -166,23 +289,25 @@ async function listCatalog(userId: string, kind: OfferKind) {
     .order('points_cost', { ascending: true });
   if (error) throw new Error(error.message);
 
-  const { data: claims } = await db
-    .from('user_offer_claims')
-    .select('offer_id')
-    .eq('user_id', userId);
-  const claimed = new Set((claims ?? []).map((c) => c.offer_id));
-
   const moneyCooldownUntil = kind === 'money' ? await getMoneyCooldownUntil(userId) : null;
   const hasActiveVoucher = await hasUnusedActiveVoucher(userId);
 
+  if (kind === 'promo') {
+    return { catalog: [], moneyCooldownUntil, hasActiveVoucher };
+  }
+
+  const visibility = await listVisibility();
+  const today = lisbonToday();
   const catalog = (offers ?? [])
     .filter((o) => {
       const euro = Number(o.euro_value ?? 0);
       const pts = Number(o.points_cost ?? 0);
-      if (kind === 'money' && isPosMoneyPrize(euro, pts)) return true;
-      return !claimed.has(o.id);
+      if (!isPosMoneyPrize(euro, pts)) return false;
+      const match = POS_DISCOUNT_CATALOG.find(
+        (discount) => discount.kind === 'money' && discount.euroValue === euro && discount.pointsCost === pts,
+      );
+      return match != null && isDiscountVisible(match, visibility.get(match.id), today);
     })
-    .filter((o) => kind === 'money' || isWithinWindow(o.starts_at, o.ends_at))
     .map((o) => ({
       id: String(o.id),
       title: String(o.title),
@@ -217,84 +342,6 @@ async function adminList() {
   return data ?? [];
 }
 
-async function createOffer(
-  userId: string,
-  body: {
-    title?: string;
-    description?: string;
-    euroValue: number;
-    pointsCost: number;
-    offerKind?: string;
-    startsAt?: string | null;
-    endsAt?: string | null;
-    restaurantId?: string | null;
-    menuItemKey?: string | null;
-    promoBenefit?: string | null;
-    itemPrice?: number | null;
-    staffInstruction?: string | null;
-  },
-) {
-  const offerKind: OfferKind = body.offerKind === 'promo' ? 'promo' : 'money';
-  const euroValue = Number(body.euroValue);
-  const pointsCost = Number(body.pointsCost);
-  if (!(pointsCost > 0)) throw new Error('pointsCost must be positive');
-  if (!(euroValue > 0)) {
-    throw new Error('Set a fixed euro discount to apply on the POS');
-  }
-
-  const promoBenefit =
-    body.promoBenefit === 'free' || body.promoBenefit === 'off20' || body.promoBenefit === 'half'
-      ? body.promoBenefit === 'half'
-        ? 'off20'
-        : body.promoBenefit
-      : null;
-
-  if (offerKind === 'promo') {
-    if (!body.menuItemKey?.trim() || !body.restaurantId?.trim() || !promoBenefit) {
-      throw new Error('Promo offers must pick a menu item and free or 20% off');
-    }
-    if (!body.title?.trim()) {
-      throw new Error('Promo offers need a title');
-    }
-  }
-
-  const title =
-    body.title?.trim() ||
-    (offerKind === 'money' ? `Vale ${euroValue}€` : 'Oferta');
-  const description =
-    body.description?.trim() ||
-    (offerKind === 'money'
-      ? `Troque ${pointsCost} pontos por um vale de ${euroValue}€. Os pontos são debitados no resgate.`
-      : `Troque ${pointsCost} pontos por esta oferta.`);
-
-  const db = serviceDb();
-  const { data, error } = await db
-    .from('reward_offers')
-    .insert({
-      title,
-      description,
-      euro_value: euroValue,
-      points_cost: pointsCost,
-      is_active: true,
-      created_by: userId,
-      offer_kind: offerKind,
-      starts_at: body.startsAt || null,
-      ends_at: body.endsAt || null,
-      restaurant_id: body.restaurantId || null,
-      menu_item_key: body.menuItemKey || null,
-      promo_benefit: promoBenefit,
-      item_price: body.itemPrice != null ? Number(body.itemPrice) : null,
-    })
-    .select(
-      'id, title, description, euro_value, points_cost, is_active, offer_kind, starts_at, ends_at, restaurant_id, menu_item_key, promo_benefit, item_price, created_at',
-    )
-    .single();
-  if (error) throw new Error(error.message);
-
-  // Keep staff instruction on a side channel via description; vouchers get it at claim
-  return { ...data, staff_instruction: body.staffInstruction ?? description };
-}
-
 async function deactivateOffer(offerId: string) {
   const db = serviceDb();
   const { error } = await db
@@ -305,14 +352,12 @@ async function deactivateOffer(offerId: string) {
   return { deactivated: true };
 }
 
-async function claimOffer(userId: string, offerId: string) {
+async function claimOffer(_userId: string, offerId: string) {
   const db = serviceDb();
 
   const { data: offer, error: offerErr } = await db
     .from('reward_offers')
-    .select(
-      'id, title, description, euro_value, points_cost, is_active, offer_kind, starts_at, ends_at, restaurant_id, menu_item_key, promo_benefit, item_price',
-    )
+    .select('id, euro_value, points_cost, is_active, offer_kind')
     .eq('id', offerId)
     .single();
   if (offerErr || !offer || !offer.is_active) throw new Error('Offer not found or inactive');
@@ -323,98 +368,7 @@ async function claimOffer(userId: string, offerId: string) {
     throw new Error('POS_PRIZE');
   }
 
-  if (offer.offer_kind === 'promo' && !isWithinWindow(offer.starts_at, offer.ends_at)) {
-    throw new Error('This offer is not available right now');
-  }
-
-  const { data: existing } = await db
-    .from('user_offer_claims')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('offer_id', offerId)
-    .maybeSingle();
-  if (existing) throw new Error('You already redeemed this voucher');
-
-  if (await hasUnusedActiveVoucher(userId)) {
-    throw new Error('ACTIVE_VOUCHER');
-  }
-
-  if (String(offer.offer_kind ?? 'money') === 'money') {
-    const cooldownUntil = await getMoneyCooldownUntil(userId);
-    if (cooldownUntil) {
-      throw new Error(`COOLDOWN:${cooldownUntil}`);
-    }
-  }
-
-  const available = await getAvailablePoints(userId);
-  if (available < Number(offer.points_cost)) {
-    throw new Error(
-      `Pontos insuficientes. Disponível: ${available}, necessário: ${offer.points_cost}`,
-    );
-  }
-
-  const code = generateVoucherCode();
-  const expires = offer.ends_at
-    ? new Date(String(offer.ends_at))
-    : (() => {
-        const d = new Date();
-        d.setMonth(d.getMonth() + 6);
-        return d;
-      })();
-
-  const euroValue = Number(offer.euro_value ?? 0);
-  const benefit = String(offer.promo_benefit ?? '');
-  const staffInstruction =
-    benefit === 'free'
-      ? `Oferecer 1× ${offer.title.replace(/\s*grátis$/i, '').trim()} (desconto ${euroValue.toFixed(2)}€)`
-      : benefit === 'off20' || benefit === 'half'
-      ? `${offer.title} → aplicar ${euroValue.toFixed(2)}€ no POS`
-      : `Aplicar ${euroValue.toFixed(2)}€ no POS`;
-
-  const { data: voucher, error: vErr } = await db
-    .from('vouchers')
-    .insert({
-      user_id: userId,
-      lkm_voucher_id: code,
-      title: offer.title,
-      description: offer.description ?? '',
-      points_cost: offer.points_cost,
-      euro_value: euroValue,
-      restaurant_name: offer.restaurant_id === 'portugueseLab' ? 'Portuguese Lab' : 'Pizza Lab',
-      state: 'active',
-      active_from: new Date().toISOString(),
-      expires_at: expires.toISOString(),
-      qr_value: code,
-      staff_instruction: staffInstruction,
-      menu_item_key: offer.menu_item_key,
-      promo_benefit: offer.promo_benefit,
-    })
-    .select(
-      'id, title, state, restaurant_name, points_cost, euro_value, expires_at, active_from, qr_value, lkm_voucher_id, staff_instruction',
-    )
-    .single();
-  if (vErr || !voucher) throw new Error(vErr?.message ?? 'Failed to create voucher');
-
-  const { error: cErr } = await db.from('user_offer_claims').insert({
-    user_id: userId,
-    offer_id: offerId,
-    voucher_id: voucher.id,
-    points_cost: offer.points_cost,
-  });
-  if (cErr) throw new Error(cErr.message);
-
-  return {
-    id: String(voucher.lkm_voucher_id ?? voucher.id),
-    title: String(voucher.title),
-    state: 'active' as const,
-    restaurantName: String(voucher.restaurant_name ?? 'Chef Domingos'),
-    pointsCost: Number(voucher.points_cost),
-    euroValue: Number(voucher.euro_value ?? euroValue),
-    staffInstruction: String(voucher.staff_instruction ?? staffInstruction),
-    expiresAt: voucher.expires_at ? String(voucher.expires_at) : null,
-    activeFrom: voucher.active_from ? String(voucher.active_from) : null,
-    qrValue: String(voucher.qr_value ?? voucher.lkm_voucher_id ?? voucher.id),
-  };
+  throw new Error('TILL_ONLY');
 }
 
 async function listMyLocalVouchers(userId: string) {
@@ -591,6 +545,16 @@ Deno.serve(async (req: Request) => {
         const offers = await adminList();
         return jsonResponse({ offers }, { headers: corsHeaders });
       }
+      if (action === 'visibility') {
+        const visibility = await listVisibility();
+        return jsonResponse({
+          visibility: [...visibility.entries()].map(([catalogId, row]) => ({
+            catalogId,
+            hidden: row.hidden,
+            visibleFrom: row.visibleFrom,
+          })),
+        }, { headers: corsHeaders });
+      }
       return errorResponse('Unknown action');
     }
 
@@ -600,6 +564,8 @@ Deno.serve(async (req: Request) => {
 
       if (
         action === 'create' ||
+        action === 'activateCatalog' ||
+        action === 'setVisibility' ||
         action === 'deactivate' ||
         action === 'validateLocal' ||
         action === 'unvalidateLocal'
@@ -607,22 +573,13 @@ Deno.serve(async (req: Request) => {
         if (!(await isUserAdmin(user.id, user.email))) return errorResponse('Admin access required', 403);
       }
 
-      if (action === 'create') {
-        const offer = await createOffer(user.id, {
-          title: body.title != null ? String(body.title) : undefined,
-          description: body.description != null ? String(body.description) : undefined,
-          euroValue: Number(body.euroValue ?? 0),
-          pointsCost: Number(body.pointsCost),
-          offerKind: body.offerKind != null ? String(body.offerKind) : 'money',
-          startsAt: body.startsAt != null ? String(body.startsAt) : null,
-          endsAt: body.endsAt != null ? String(body.endsAt) : null,
-          restaurantId: body.restaurantId != null ? String(body.restaurantId) : null,
-          menuItemKey: body.menuItemKey != null ? String(body.menuItemKey) : null,
-          promoBenefit: body.promoBenefit != null ? String(body.promoBenefit) : null,
-          itemPrice: body.itemPrice != null ? Number(body.itemPrice) : null,
-          staffInstruction: body.staffInstruction != null ? String(body.staffInstruction) : null,
-        });
-        return jsonResponse({ offer }, { headers: corsHeaders });
+      if (action === 'create' || action === 'activateCatalog') {
+        return errorResponse('Discounts come from the till catalog. Hide one or set the day it becomes visible.', 400);
+      }
+
+      if (action === 'setVisibility') {
+        const saved = await setVisibility(String(body.catalogKey ?? ''), body.hidden, body.visibleFrom);
+        return jsonResponse({ visibility: saved }, { headers: corsHeaders });
       }
 
       if (action === 'deactivate') {

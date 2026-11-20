@@ -64,39 +64,29 @@ export async function listAdminOffers(): Promise<AdminOffer[]> {
   return res.offers;
 }
 
-export async function createAdminOffer(params: {
-  euroValue: number;
-  pointsCost: number;
-  title?: string;
-  description?: string;
-  offerKind?: OfferKind;
-  startsAt?: string | null;
-  endsAt?: string | null;
-  restaurantId?: string | null;
-  menuItemKey?: string | null;
-  promoBenefit?: PromoBenefit | null;
-  itemPrice?: number | null;
-  staffInstruction?: string | null;
-}): Promise<AdminOffer> {
-  const res = await lkmCall<{ offer: AdminOffer }>('reward-offers', {
-    method: 'POST',
-    body: {
-      action: 'create',
-      euroValue: params.euroValue,
-      pointsCost: params.pointsCost,
-      title: params.title,
-      description: params.description,
-      offerKind: params.offerKind ?? 'money',
-      startsAt: params.startsAt,
-      endsAt: params.endsAt,
-      restaurantId: params.restaurantId,
-      menuItemKey: params.menuItemKey,
-      promoBenefit: params.promoBenefit,
-      itemPrice: params.itemPrice,
-      staffInstruction: params.staffInstruction,
-    },
+export type DiscountVisibilityRow = {
+  catalogId: string;
+  hidden: boolean;
+  visibleFrom: string | null;
+};
+
+export async function listDiscountVisibility(): Promise<DiscountVisibilityRow[]> {
+  const res = await lkmCall<{ visibility: DiscountVisibilityRow[] }>('reward-offers', {
+    query: { action: 'visibility' },
   });
-  return res.offer;
+  return res.visibility ?? [];
+}
+
+export async function setDiscountVisibility(
+  catalogKey: string,
+  hidden: boolean,
+  visibleFrom: string | null,
+): Promise<DiscountVisibilityRow> {
+  const res = await lkmCall<{ visibility: DiscountVisibilityRow }>('reward-offers', {
+    method: 'POST',
+    body: { action: 'setVisibility', catalogKey, hidden, visibleFrom },
+  });
+  return res.visibility;
 }
 
 export async function deactivateAdminOffer(offerId: string): Promise<void> {

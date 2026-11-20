@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -36,6 +36,29 @@ const FILTER_I18N: Record<FilterKey, string> = {
   used: 'wallet.filterUsed',
 };
 
+const PAGE_SIZE = 30;
+
+function txDescription(entry: AppTransaction, t: (key: string, options?: Record<string, unknown>) => string): string {
+  if (entry.description.startsWith('Resgate: ')) {
+    return t('wallet.txRedeemNamed', { title: entry.description.slice('Resgate: '.length) });
+  }
+  switch (entry.type) {
+    case 'earn':
+      return entry.description === 'Compra faturada' ? t('wallet.txPurchase') : entry.description;
+    case 'redeem':
+      return entry.description === 'Resgate' || entry.description === 'Resgate de vale'
+        ? t('wallet.txRedeem')
+        : entry.description;
+    case 'credit':
+      return entry.description === 'Carregamento' ? t('wallet.txCredit') : entry.description;
+    case 'reversal':
+      return entry.description === 'Anulação' ? t('wallet.txReversal') : entry.description;
+    default: {
+      const unexpected: never = entry.type;
+      return unexpected;
+    }
+  }
+}
 function formatDate(iso: string, tag: string): string {
   try {
     const d = new Date(iso);
@@ -57,55 +80,65 @@ export default function WalletScreen() {
   const [filter, setFilter] = useState<FilterKey>('all');
   const [transactions, setTransactions] = useState<AppTransaction[]>([]);
   const [txLoading, setTxLoading]     = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore]         = useState(false);
   const [txError, setTxError]         = useState<string | null>(null);
   const [refreshing, setRefreshing]   = useState(false);
+  const requestId = useRef(0);
 
-  const loadTransactions = useCallback(async (f: FilterKey) => {
-    setTxLoading(true);
+  const loadTransactions = useCallback(async (f: FilterKey, page = 1, append = false) => {
+    const id = ++requestId.current;
+    if (append) setLoadingMore(true);
+    else setTxLoading(true);
     setTxError(null);
     try {
-      const res = await getTransactions(FILTER_MAP[f]);
-      setTransactions(res.transactions);
+      const res = await getTransactions(FILTER_MAP[f], page, PAGE_SIZE);
+      if (id !== requestId.current) return;
+      setHasMore(Boolean(res.hasMore));
+      setTransactions((current) => (append ? [...current, ...res.transactions] : res.transactions));
     } catch (err) {
+      if (id !== requestId.current) return;
       setTxError((err as Error).message);
-      setTransactions([]);
+      if (!append) {
+        setTransactions([]);
+        setHasMore(false);
+      }
     } finally {
-      setTxLoading(false);
+      if (id === requestId.current) {
+        setTxLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, []);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    fetchPoints();
-    loadTransactions(filter);
-  }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
       if (!user?.id) return;
       fetchPoints();
-      loadTransactions(filter);
-    }, [user?.id, filter]),
+      void loadTransactions(filter, 1, false);
+    }, [user?.id, filter, fetchPoints, loadTransactions]),
   );
 
   const onFilterChange = (f: FilterKey) => {
     setFilter(f);
-    loadTransactions(f);
   };
 
   const onRefresh = async () => {
     if (!user?.id) return;
     setRefreshing(true);
-    await Promise.all([fetchPoints(), loadTransactions(filter)]);
+    await Promise.all([fetchPoints(), loadTransactions(filter, 1, false)]);
     setRefreshing(false);
   };
+
+  const loadedPages = Math.max(1, Math.ceil(transactions.length / PAGE_SIZE));
 
   return (
     <View style={styles.root}>
       <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: (insets.bottom || 8) + 88 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />}
       >
         <View style={styles.logoWrap}>
@@ -120,7 +153,7 @@ export default function WalletScreen() {
           ) : (
             <>
               <Text style={styles.pts}>{Number.isFinite(balance) ? balance : 0}</Text>
-              <Text style={styles.ptsLabel}>PONTOS</Text>
+              <Text style={styles.ptsLabel}>{t('common.points')}</Text>
               <Text style={styles.expiryHint}>{t('home.pointsExpiry')}</Text>
               {ptsError ? (
                 <Text style={styles.pointsError}>{t('common.pointsLoadError')}</Text>
@@ -153,10 +186,8 @@ export default function WalletScreen() {
           <ActivityIndicator color={Colors.gold} style={{ marginTop: 32 }} />
         ) : (
           <View style={styles.list}>
-            {txError ? (
-              <Text style={styles.empty}>{t('wallet.loadError')}</Text>
-            ) : transactions.length === 0 ? (
-              <Text style={styles.empty}>{t('wallet.empty')}</Text>
+            {transactions.length === 0 ? (
+              <Text style={styles.empty}>{txError ? t('wallet.loadError') : t('wallet.empty')}</Text>
             ) : (
               transactions.map((entry) => {
                 const restaurantId: RestaurantId = /pizza/i.test(entry.restaurant)
@@ -173,7 +204,7 @@ export default function WalletScreen() {
                   </View>
                   <View style={styles.entryInfo}>
                     <Text style={styles.entryRestaurant}>{entry.restaurant}</Text>
-                    <Text style={styles.entryMeal}>{entry.description} · {formatDate(entry.date, dateTag)}</Text>
+                    <Text style={styles.entryMeal}>{txDescription(entry, t)} · {formatDate(entry.date, dateTag)}</Text>
                     {expiry ? (
                       <Text style={styles.entryExpiry}>{t('wallet.expiresOn', { date: expiry })}</Text>
                     ) : null}
@@ -190,6 +221,22 @@ export default function WalletScreen() {
               );
               })
             )}
+            {txError && transactions.length > 0 ? (
+              <Text style={styles.empty}>{t('wallet.loadError')}</Text>
+            ) : null}
+            {hasMore ? (
+              <TouchableOpacity
+                style={styles.moreBtn}
+                onPress={() => void loadTransactions(filter, loadedPages + 1, true)}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <ActivityIndicator color={Colors.gold} />
+                ) : (
+                  <Text style={styles.moreBtnText}>{t('wallet.loadMore')}</Text>
+                )}
+              </TouchableOpacity>
+            ) : null}
           </View>
         )}
 
@@ -201,6 +248,7 @@ export default function WalletScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  scrollView: { flex: 1 },
   bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   logoWrap: { alignItems: 'center', marginBottom: 4 },
@@ -219,6 +267,16 @@ const styles = StyleSheet.create({
   filterTextActive: { color: '#fff' },
   list: { gap: 12 },
   empty: { textAlign: 'center', color: Colors.textPrimary, marginTop: 32, fontSize: 15 },
+  moreBtn: {
+    marginTop: 8,
+    alignSelf: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: Colors.gold,
+  },
+  moreBtnText: { color: Colors.gold, fontSize: 14, fontWeight: '700' },
   entry: {
     backgroundColor: '#fff',
     borderRadius: 15,

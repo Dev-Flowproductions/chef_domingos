@@ -357,6 +357,7 @@ export default function StaffRemovePointsScreen() {
           ) : null}
 
           <ScrollView
+            style={styles.scrollView}
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scroll}
@@ -457,7 +458,7 @@ export default function StaffRemovePointsScreen() {
           </ScrollView>
         </>
       ) : (
-        <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <ScrollView style={styles.scrollView} nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           <View style={styles.customerCard}>
             <Text style={styles.customerName}>{customer.name ?? '—'}</Text>
             <Text style={styles.customerMeta}>{customer.email ?? customer.cardCode ?? '—'}</Text>
@@ -533,6 +534,7 @@ const styles = StyleSheet.create({
   modeBtnActive: { backgroundColor: Colors.gold, borderColor: Colors.gold },
   modeBtnText: { fontSize: 13, fontWeight: '600', color: Colors.textPrimary },
   modeBtnTextActive: { color: '#fff' },
+  scrollView: { flex: 1 },
   scroll: { paddingBottom: 40 },
   cameraWrap: {
     height: 280,

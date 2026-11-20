@@ -28,6 +28,7 @@ import {
   getFallbackOfferImage,
   getOfferCardTheme,
 } from '../../lib/offerI18n';
+import { isLkmPosMoneyPrize } from '../../lib/lkmMoneyPrizes';
 import type { RestaurantId } from '../../lib/menuI18n';
 
 type HomeNav = NativeStackNavigationProp<HomeStackParamList, 'HomeMain'>;
@@ -138,6 +139,10 @@ export default function HomeScreen() {
                 await fetchMyVouchers();
                 return;
               }
+              if (msg === 'TILL_ONLY' || msg === 'POS_PRIZE') {
+                Alert.alert(t('rewards.posPrizeTitle'), t('rewards.moneyVouchersHint'));
+                return;
+              }
               Alert.alert(t('common.error'), msg);
             }
           },
@@ -150,8 +155,9 @@ export default function HomeScreen() {
     <View style={styles.root}>
       <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: (insets.bottom || 8) + 88 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />
         }
@@ -188,7 +194,7 @@ export default function HomeScreen() {
 
         {promoLoading ? (
           <ActivityIndicator color={Colors.gold} style={{ marginVertical: 16 }} />
-        ) : promoCatalog.length === 0 ? (
+        ) : promoCatalog.filter((item) => isLkmPosMoneyPrize(item)).length === 0 ? (
           <Text style={styles.emptyPromos}>{t('home.noPromos')}</Text>
         ) : (
           <ScrollView
@@ -287,6 +293,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  scrollView: { flex: 1 },
   bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   logoWrap: { alignItems: 'center', marginBottom: 4 },

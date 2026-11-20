@@ -155,6 +155,7 @@ export default function AdminMenuScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
+        style={styles.scrollView}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
@@ -387,6 +388,7 @@ export default function AdminMenuScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  scrollView: { flex: 1 },
   scroll: { paddingHorizontal: 20, flexGrow: 1 },
   back: { color: Colors.gold, fontSize: 16, marginBottom: 12 },
   title: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },

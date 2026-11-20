@@ -198,7 +198,7 @@ export default function StaffValidateScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {mode === 'scan' ? (
           <View style={styles.cameraWrap}>
             {!permission?.granted ? (
@@ -293,6 +293,7 @@ export default function StaffValidateScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 24 },
+  scrollView: { flex: 1 },
   scroll: { paddingBottom: 24 },
   close: { alignSelf: 'flex-end', padding: 8 },
   title: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center' },

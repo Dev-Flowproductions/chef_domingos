@@ -20,12 +20,54 @@ import { usePointsStore } from '../../store/pointsStore';
 import { useAuthStore } from '../../store/authStore';
 import { useVouchersStore } from '../../store/vouchersStore';
 import JDLogo from '../../components/JDLogo';
-import { getFallbackCatalog, localizeCatalogItem } from '../../lib/offerI18n';
-import { isLkmPosMoneyPrize } from '../../lib/lkmMoneyPrizes';
+import { localizeCatalogItem } from '../../lib/offerI18n';
+import {
+  POS_DISCOUNT_CATALOG,
+  isDiscountVisibleToCustomers,
+  lisbonDateISO,
+  type PosDiscount,
+  type PosDiscountVisibility,
+} from '../../lib/posDiscountCatalog';
+import { listDiscountVisibility, type DiscountVisibilityRow } from '../../services/lkm/rewardOffers';
 import { formatVoucherExpiry, moneyCooldownRemainingMs } from '../../lib/loyaltyRules';
 import type { RewardsStackParamList } from '../../navigation/types';
 
 type RewardsNav = NativeStackNavigationProp<RewardsStackParamList, 'RewardsMain'>;
+
+function moneyOfferCopyKey(euroValue: number | null): 'v5' | 'v10' | 'v20' | 'v30' {
+  switch (euroValue) {
+    case 5:
+      return 'v5';
+    case 10:
+      return 'v10';
+    case 20:
+      return 'v20';
+    case 30:
+      return 'v30';
+    default:
+      return 'v5';
+  }
+}
+
+function visibilityMap(rows: DiscountVisibilityRow[]): Map<string, PosDiscountVisibility> {
+  return new Map(rows.map((row) => [row.catalogId, { hidden: row.hidden, visibleFrom: row.visibleFrom }]));
+}
+
+function customerCopy(discount: PosDiscount, t: (key: string, options?: Record<string, unknown>) => string) {
+  if (discount.kind === 'money' && discount.euroValue != null) {
+    const offerKey = moneyOfferCopyKey(discount.euroValue);
+    return {
+      title: t(`offers.${offerKey}.title`),
+      description: t(`offers.${offerKey}.description`),
+      restaurantName: t(`offers.${offerKey}.tag`),
+    };
+  }
+  return {
+    title: t(`staff.catalogItems.${discount.id}`),
+    description: t('rewards.tillDiscountDescription', { count: discount.pointsCost ?? 0 }),
+    restaurantName: t('rewards.moneyVouchers'),
+  };
+}
 
 const FALLBACK_IMAGES = [
   require('../../assets/pizza-lab-food.jpg'),
@@ -39,8 +81,6 @@ export default function RecompensasScreen() {
 
   const { balance, loading: ptsLoading, fetch: fetchPoints } = usePointsStore();
   const {
-    moneyCatalog,
-    catalogLoading,
     fetchCatalog,
     claim,
     claiming,
@@ -52,12 +92,23 @@ export default function RecompensasScreen() {
   const { user } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
   const [nowTick, setNowTick] = useState(Date.now());
+  const [visibility, setVisibility] = useState<Map<string, PosDiscountVisibility>>(new Map());
+
+  const loadVisibility = async () => {
+    try {
+      const rows = await listDiscountVisibility();
+      setVisibility(visibilityMap(rows));
+    } catch {
+      setVisibility(new Map());
+    }
+  };
 
   useEffect(() => {
     if (!user?.id) return;
     fetchPoints();
     fetchCatalog();
     fetchMyVouchers();
+    void loadVisibility();
   }, [user?.id]);
 
   useEffect(() => {
@@ -75,7 +126,7 @@ export default function RecompensasScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchPoints(), fetchCatalog(), fetchMyVouchers()]);
+    await Promise.all([fetchPoints(), fetchCatalog(), fetchMyVouchers(), loadVisibility()]);
     setRefreshing(false);
   };
 
@@ -98,7 +149,7 @@ export default function RecompensasScreen() {
   };
 
   const handleClaim = async (catalogId: string, title: string, cost: number, euroValue?: number) => {
-    if (isLkmPosMoneyPrize({ pointsCost: cost, euroValue })) {
+    if (POS_DISCOUNT_CATALOG.some((discount) => discount.id === catalogId)) {
       handlePosPrize(title, cost);
       return;
     }
@@ -143,6 +194,10 @@ export default function RecompensasScreen() {
                 handlePosPrize(title, cost);
                 return;
               }
+              if (msg === 'TILL_ONLY') {
+                Alert.alert(t('rewards.posPrizeTitle'), t('rewards.moneyVouchersHint'));
+                return;
+              }
               if (msg === 'ACTIVE_VOUCHER') {
                 Alert.alert(t('rewards.noStackTitle'), t('rewards.noStackBody'));
                 await fetchMyVouchers();
@@ -167,16 +222,33 @@ export default function RecompensasScreen() {
     );
   };
 
-  const list = moneyCatalog.length > 0 ? moneyCatalog : getFallbackCatalog(t);
-  const hasLocalMoney = list.some((item) => !isLkmPosMoneyPrize(item));
+  const today = lisbonDateISO();
+  const catalogList = POS_DISCOUNT_CATALOG.filter(
+    (discount) => discount.pointsCost != null && isDiscountVisibleToCustomers(discount, visibility.get(discount.id), today),
+  ).map((discount) => {
+    const copy = customerCopy(discount, t);
+    return {
+      id: discount.id,
+      title: copy.title,
+      description: copy.description,
+      restaurantName: copy.restaurantName,
+      pointsCost: discount.pointsCost ?? 0,
+      euroValue: discount.euroValue ?? 0,
+      imageUrl: '',
+      restaurantId: '',
+      expiresAt: null,
+    };
+  });
+  const list = catalogList;
   const activeCount = myVouchers.filter((v) => v.state === 'active' || v.state === 'pending').length;
 
   return (
     <View style={styles.root}>
       <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: (insets.bottom || 8) + 88 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />}
       >
         <View style={styles.logoWrap}>
@@ -210,24 +282,13 @@ export default function RecompensasScreen() {
 
         <Text style={[styles.sectionTitle, { marginBottom: 4 }]}>{t('rewards.moneyVouchers')}</Text>
         <Text style={styles.sectionSubtitle}>{t('rewards.moneyVouchersHint')}</Text>
-        {hasLocalMoney && hasActiveVoucher ? (
-          <Text style={styles.cooldownBanner}>{t('rewards.noStackBanner')}</Text>
-        ) : hasLocalMoney && moneyBlocked && moneyCooldownUntil ? (
-          <Text style={styles.cooldownBanner}>
-            {t('rewards.cooldownBanner', {
-              until: formatVoucherExpiry(moneyCooldownUntil, i18n.language),
-            })}
-          </Text>
-        ) : null}
 
-        {catalogLoading ? (
-          <ActivityIndicator color={Colors.gold} style={{ marginVertical: 16 }} />
-        ) : (
-          <View style={styles.list}>
+        <View style={styles.list}>
+            {list.length === 0 ? <Text style={styles.sectionSubtitle}>{t('rewards.noVisibleDiscounts')}</Text> : null}
             {list.map((raw, i) => {
               const v = localizeCatalogItem(raw, t);
-              const posPrize = isLkmPosMoneyPrize(v);
-              const disabled = claiming || (!posPrize && redeemBlocked);
+              const posPrize = true;
+              const disabled = claiming;
               return (
                 <View key={v.id} style={[styles.voucher, !posPrize && redeemBlocked && styles.voucherDimmed]}>
                   <Image
@@ -260,8 +321,7 @@ export default function RecompensasScreen() {
                 </View>
               );
             })}
-          </View>
-        )}
+        </View>
 
         <View style={{ height: 24 }} />
       </ScrollView>
@@ -271,6 +331,7 @@ export default function RecompensasScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  scrollView: { flex: 1 },
   bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   logoWrap: { alignItems: 'center', marginBottom: 4 },

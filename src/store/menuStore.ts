@@ -223,8 +223,10 @@ export function toMenuItemRefs(items: MenuItemRow[], restaurantId: RestaurantId)
 }
 
 export function formatMenuPrice(price: number, locale: 'pt' | 'en'): string {
-  if (locale === 'pt') return `${price.toFixed(2).replace('.', ',')}€`;
-  return `€${price.toFixed(2)}`;
+  const amount = Number(price);
+  const safe = Number.isFinite(amount) ? amount : 0;
+  if (locale === 'pt') return `${safe.toFixed(2).replace('.', ',')}€`;
+  return `€${safe.toFixed(2)}`;
 }
 
 export function localizedName(item: MenuItemRow, locale: 'pt' | 'en'): string {

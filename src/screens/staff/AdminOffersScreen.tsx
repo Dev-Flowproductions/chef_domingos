@@ -1,51 +1,101 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Switch,
+  TextInput,
   Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../lib/theme';
-import { RESTAURANT_IDS, RESTAURANT_MENUS, type RestaurantId } from '../../lib/menuI18n';
 import {
-  PromoBenefit,
-  buildPromoDescription,
-  buildPromoTitle,
-  buildStaffInstruction,
-  computePromoValues,
-} from '../../lib/menuCatalog';
+  POS_DISCOUNT_CATALOG,
+  POS_DISCOUNT_KINDS,
+  defaultDiscountHidden,
+  discountsOfKind,
+  isDiscountVisibleToCustomers,
+  lisbonDateISO,
+  type PosDiscount,
+  type PosDiscountKind,
+  type PosDiscountVisibility,
+} from '../../lib/posDiscountCatalog';
 import {
-  AdminOffer,
-  OfferKind,
-  createAdminOffer,
-  deactivateAdminOffer,
-  listAdminOffers,
+  listDiscountVisibility,
+  setDiscountVisibility,
+  type DiscountVisibilityRow,
 } from '../../services/lkm/rewardOffers';
-import { POINTS_PER_EURO } from '../../lib/loyaltyRules';
 import { hasAdminAccess } from '../../lib/adminAccess';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
-import {
-  itemsForRestaurant,
-  localizedName,
-  useMenuStore,
-} from '../../store/menuStore';
+
+function kindLabelKey(kind: PosDiscountKind): 'staff.catalogMoney' | 'staff.catalogPercent' | 'staff.catalogArticle' {
+  switch (kind) {
+    case 'money':
+      return 'staff.catalogMoney';
+    case 'percent':
+      return 'staff.catalogPercent';
+    case 'article':
+      return 'staff.catalogArticle';
+    default: {
+      const unexpected: never = kind;
+      return unexpected;
+    }
+  }
+}
+
+function formatPtDate(iso: string): string {
+  const [year, month, day] = iso.split('-');
+  if (!year || !month || !day) return '';
+  return `${day}/${month}/${year}`;
+}
+
+function parsePtDate(text: string): string | null {
+  const match = text.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
+function maskDate(input: string): string {
+  const digits = input.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function visibilityFor(
+  discount: PosDiscount,
+  saved: Map<string, DiscountVisibilityRow>,
+): PosDiscountVisibility {
+  const row = saved.get(discount.id);
+  return {
+    hidden: row?.hidden ?? defaultDiscountHidden(discount.kind),
+    visibleFrom: row?.visibleFrom ?? null,
+  };
+}
 
 export default function AdminOffersScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language?.startsWith('pt') ? 'pt' : 'en';
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const profile = useUserStore((s) => s.profile);
   const isAdmin = hasAdminAccess({
@@ -53,71 +103,34 @@ export default function AdminOffersScreen() {
     isAdminFlag: profile?.is_admin,
     appMetadata: (user as { app_metadata?: Record<string, unknown> } | null)?.app_metadata,
   });
-  const { items: menuRows, fetchMenus } = useMenuStore();
 
-  const [offers, setOffers] = useState<AdminOffer[]>([]);
+  const [saved, setSaved] = useState<Map<string, DiscountVisibilityRow>>(new Map());
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [kind, setKind] = useState<OfferKind>('promo');
-  const [restaurantId, setRestaurantId] = useState<RestaurantId>('pizzaLab');
-  const [selectedItemKey, setSelectedItemKey] = useState<string | null>('diavola');
-  const [benefit, setBenefit] = useState<PromoBenefit>('free');
-  const [euroValue, setEuroValue] = useState('5');
-  const [pointsCost, setPointsCost] = useState(String(5 * POINTS_PER_EURO));
-  const [daysValid, setDaysValid] = useState('14');
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const today = lisbonDateISO();
 
-  const menuItems = useMemo(
-    () => itemsForRestaurant(menuRows, restaurantId, { forAdminPromo: true }),
-    [menuRows, restaurantId],
-  );
-  const menuByCategory = useMemo(() => {
-    const categories = RESTAURANT_MENUS[restaurantId].categories.filter(
-      (categoryId) =>
-        !(RESTAURANT_MENUS[restaurantId].adminExcludedCategories ?? []).includes(categoryId),
-    );
-    return categories
-      .map((categoryId) => ({
-        categoryId,
-        items: menuItems.filter((item) => item.category_id === categoryId),
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [restaurantId, menuItems]);
-
-  const selectedItem =
-    menuItems.find((i) => i.item_key === selectedItemKey) ?? menuItems[0] ?? null;
-
-  const promoPreview = useMemo(() => {
-    if (!selectedItem) return null;
-    const values = computePromoValues(selectedItem.price_euros, benefit);
-    const itemName = localizedName(selectedItem, locale);
-    const restaurantName = t(`menu.restaurants.${restaurantId}`);
-    return {
-      ...values,
-      itemName,
-      title: buildPromoTitle(itemName, benefit, locale),
-      description: buildPromoDescription(
-        itemName,
-        restaurantName,
-        benefit,
-        values.euroValue,
-        values.pointsCost,
-        locale,
-      ),
-      staffInstruction: buildStaffInstruction(itemName, benefit, values.euroValue, locale),
-    };
-  }, [selectedItem, benefit, restaurantId, t, locale]);
+  const applyRows = useCallback((rows: DiscountVisibilityRow[]) => {
+    const next = new Map(rows.map((row) => [row.catalogId, row]));
+    setSaved(next);
+    const nextDrafts: Record<string, string> = {};
+    for (const discount of POS_DISCOUNT_CATALOG) {
+      const from = next.get(discount.id)?.visibleFrom;
+      nextDrafts[discount.id] = from ? formatPtDate(from) : '';
+    }
+    setDrafts(nextDrafts);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await listAdminOffers();
-      setOffers(list);
+      applyRows(await listDiscountVisibility());
     } catch (err) {
       Alert.alert(t('common.error'), (err as Error).message);
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [applyRows, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -125,93 +138,78 @@ export default function AdminOffersScreen() {
         navigation.goBack();
         return;
       }
-      void fetchMenus();
       void load();
-    }, [isAdmin, load, navigation, fetchMenus]),
+    }, [isAdmin, load, navigation]),
   );
 
-  const handleCreate = async () => {
-    if (!isAdmin) {
-      Alert.alert(t('common.error'), t('staff.adminRequired'));
-      return;
-    }
-
-    if (kind === 'promo') {
-      if (!selectedItem || !promoPreview) {
-        Alert.alert(t('common.error'), t('staff.offerNeedItem'));
-        return;
-      }
-    } else {
-      const euros = Number(String(euroValue).replace(',', '.'));
-      const points = Number(pointsCost);
-      if (!(points > 0) || !(euros > 0)) {
-        Alert.alert(t('common.error'), t('staff.offerInvalid'));
-        return;
-      }
-    }
-
-    const days = Math.max(1, Number(daysValid) || 14);
-    const startsAt = new Date().toISOString();
-    const ends = new Date();
-    ends.setDate(ends.getDate() + days);
-
-    setSaving(true);
+  const persist = async (discount: PosDiscount, hidden: boolean, visibleFrom: string | null) => {
+    setSavingId(discount.id);
     try {
-      if (kind === 'promo' && selectedItem && promoPreview) {
-        await createAdminOffer({
-          euroValue: promoPreview.euroValue,
-          pointsCost: promoPreview.pointsCost,
-          title: promoPreview.title,
-          description: promoPreview.description,
-          offerKind: 'promo',
-          startsAt,
-          endsAt: ends.toISOString(),
-          restaurantId,
-          menuItemKey: selectedItem.item_key,
-          promoBenefit: benefit,
-          itemPrice: selectedItem.price_euros,
-          staffInstruction: promoPreview.staffInstruction,
-        });
-      } else {
-        await createAdminOffer({
-          euroValue: Number(String(euroValue).replace(',', '.')),
-          pointsCost: Number(pointsCost),
-          offerKind: 'money',
-        });
-      }
-      await load();
-      Alert.alert(t('common.success'), t('staff.offerCreated'));
+      const row = await setDiscountVisibility(discount.id, hidden, visibleFrom);
+      setSaved((current) => {
+        const next = new Map(current);
+        next.set(discount.id, row);
+        return next;
+      });
+      setDrafts((current) => ({
+        ...current,
+        [discount.id]: row.visibleFrom ? formatPtDate(row.visibleFrom) : '',
+      }));
     } catch (err) {
       Alert.alert(t('common.error'), (err as Error).message);
+      const previous = saved.get(discount.id)?.visibleFrom;
+      setDrafts((current) => ({
+        ...current,
+        [discount.id]: previous ? formatPtDate(previous) : '',
+      }));
     } finally {
-      setSaving(false);
+      setSavingId(null);
     }
   };
 
-  const handleDeactivate = (offer: AdminOffer) => {
-    Alert.alert(t('staff.deactivateTitle'), t('staff.deactivateBody', { title: offer.title }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('staff.deactivate'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deactivateAdminOffer(offer.id);
-            await load();
-          } catch (err) {
-            Alert.alert(t('common.error'), (err as Error).message);
-          }
-        },
-      },
-    ]);
+  const saveDate = (discount: PosDiscount) => {
+    const text = (drafts[discount.id] ?? '').trim();
+    const current = visibilityFor(discount, saved);
+    if (text === '') {
+      if (current.visibleFrom != null) void persist(discount, current.hidden, null);
+      return;
+    }
+    const parsed = parsePtDate(text);
+    if (!parsed) {
+      Alert.alert(t('common.error'), t('staff.visibleFromInvalid'));
+      setDrafts((rows) => ({
+        ...rows,
+        [discount.id]: current.visibleFrom ? formatPtDate(current.visibleFrom) : '',
+      }));
+      return;
+    }
+    if (parsed !== current.visibleFrom) void persist(discount, current.hidden, parsed);
+  };
+
+  const shareCatalog = () => {
+    const lines = [
+      t('staff.posListHeader'),
+      '',
+      ...POS_DISCOUNT_CATALOG.map((discount) => {
+        const name = t(`staff.catalogItems.${discount.id}`);
+        const visibility = visibilityFor(discount, saved);
+        const shown = isDiscountVisibleToCustomers(discount, visibility, today);
+        const points = discount.pointsCost != null ? ` — ${discount.pointsCost} pts` : '';
+        const code = discount.lkmCode != null ? ` — LKM ${discount.lkmCode}` : '';
+        const when = visibility.visibleFrom ? ` — ${formatPtDate(visibility.visibleFrom)}` : '';
+        return `• ${name}${points}${code}${when} — ${shown ? t('staff.visibleNow') : t('staff.hiddenFromCustomers')}`;
+      }),
+      '',
+      t('staff.posListFooter'),
+    ];
+    void Share.share({ message: lines.join('\n') });
   };
 
   return (
     <View style={styles.root}>
       <ScrollView
-        nestedScrollEnabled
+        style={styles.scrollView}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 }]}
-        keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={Colors.gold} />}
       >
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -221,210 +219,87 @@ export default function AdminOffersScreen() {
         <Text style={styles.title}>{t('staff.manageOffers')}</Text>
         <Text style={styles.hint}>{t('staff.manageOffersHint')}</Text>
 
-        <View style={styles.kindRow}>
-          <TouchableOpacity
-            style={[styles.kindBtn, kind === 'promo' && styles.kindBtnActive]}
-            onPress={() => setKind('promo')}
-          >
-            <Text style={[styles.kindText, kind === 'promo' && styles.kindTextActive]}>
-              {t('staff.kindPromo')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.kindBtn, kind === 'money' && styles.kindBtnActive]}
-            onPress={() => setKind('money')}
-          >
-            <Text style={[styles.kindText, kind === 'money' && styles.kindTextActive]}>
-              {t('staff.kindMoney')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.form}>
-          {kind === 'promo' ? (
-            <>
-              <Text style={styles.label}>{t('staff.pickRestaurant')}</Text>
-              <View style={styles.chipRow}>
-                {RESTAURANT_IDS.map((id) => (
-                  <TouchableOpacity
-                    key={id}
-                    style={[styles.chip, restaurantId === id && styles.chipActive]}
-                    onPress={() => {
-                      setRestaurantId(id);
-                      const first = itemsForRestaurant(menuRows, id, { forAdminPromo: true })[0];
-                      setSelectedItemKey(first?.item_key ?? null);
-                    }}
-                  >
-                    <Text style={[styles.chipText, restaurantId === id && styles.chipTextActive]}>
-                      {t(`menu.restaurants.${id}`)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.label}>{t('staff.pickBenefit')}</Text>
-              <View style={styles.chipRow}>
-                {(['free', 'off20'] as PromoBenefit[]).map((b) => (
-                  <TouchableOpacity
-                    key={b}
-                    style={[styles.chip, benefit === b && styles.chipActive]}
-                    onPress={() => setBenefit(b)}
-                  >
-                    <Text style={[styles.chipText, benefit === b && styles.chipTextActive]}>
-                      {b === 'free' ? t('staff.benefitFree') : t('staff.benefitOff20')}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.label}>
-                {t('staff.pickMenuItem')} ({menuItems.length})
-              </Text>
-              <ScrollView
-                nestedScrollEnabled
-                style={styles.itemListScroll}
-                contentContainerStyle={styles.itemList}
-              >
-                {menuByCategory.map((group) => (
-                  <View key={group.categoryId}>
-                    <Text style={styles.categoryHeader}>
-                      {t(`menu.${restaurantId}.categories.${group.categoryId}`)}
-                    </Text>
-                    {group.items.map((item) => {
-                      const active = selectedItem?.item_key === item.item_key;
-                      return (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={[styles.itemRow, active && styles.itemRowActive]}
-                          onPress={() => setSelectedItemKey(item.item_key)}
-                        >
-                          <Text style={[styles.itemName, active && styles.itemNameActive]}>
-                            {localizedName(item, locale)}
-                          </Text>
-                          <Text style={styles.itemPrice}>{item.price_euros.toFixed(2)}€</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                ))}
-              </ScrollView>
-
-              <Text style={styles.label}>{t('staff.daysValid')}</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="number-pad"
-                value={daysValid}
-                onChangeText={setDaysValid}
-                placeholder="14"
-                placeholderTextColor="#aaa"
-              />
-
-              {promoPreview ? (
-                <View style={styles.preview}>
-                  <Text style={styles.previewTitle}>{promoPreview.title}</Text>
-                  <Text style={styles.previewLine}>
-                    {t('staff.previewPos', { amount: promoPreview.euroValue.toFixed(2) })}
-                  </Text>
-                  <Text style={styles.previewLine}>
-                    {t('staff.previewPoints', { count: promoPreview.pointsCost })}
-                  </Text>
-                  <Text style={styles.previewHint}>{t('staff.previewMath')}</Text>
-                </View>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <Text style={styles.label}>{t('staff.posDiscount')}</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="decimal-pad"
-                value={euroValue}
-                onChangeText={(v) => {
-                  setEuroValue(v);
-                  const euros = Number(String(v).replace(',', '.'));
-                  if (euros > 0) setPointsCost(String(Math.round(euros * POINTS_PER_EURO)));
-                }}
-                placeholder="5"
-                placeholderTextColor="#aaa"
-              />
-              <Text style={styles.label}>{t('staff.pointsCost')}</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="number-pad"
-                value={pointsCost}
-                onChangeText={setPointsCost}
-                placeholder={String(5 * POINTS_PER_EURO)}
-                placeholderTextColor="#aaa"
-              />
-              <Text style={styles.spendNote}>{t('staff.pointsSpendNote')}</Text>
-            </>
-          )}
-
-          <TouchableOpacity
-            style={[styles.createBtn, saving && styles.btnDisabled]}
-            onPress={handleCreate}
-            disabled={saving}
-            activeOpacity={0.85}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.createBtnText}>{t('staff.createOffer')}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>{t('staff.existingOffers')}</Text>
-          <TouchableOpacity
-            onPress={() => {
-              const active = offers.filter((o) => o.is_active);
-              if (!active.length) {
-                Alert.alert(t('staff.posListEmpty'));
-                return;
-              }
-              const lines = [
-                t('staff.posListHeader'),
-                '',
-                ...active.map((offer) => {
-                  const kind =
-                    offer.offer_kind === 'promo' ? t('staff.kindPromo') : t('staff.kindMoney');
-                  const euros = Number(offer.euro_value) > 0 ? `${offer.euro_value}€ POS` : '';
-                  return `• ${offer.title} — ${kind}${euros ? ` — ${euros}` : ''} — ${offer.points_cost} pts`;
-                }),
-                '',
-                t('staff.posListFooter'),
-              ];
-              void Share.share({ message: lines.join('\n') });
-            }}
-          >
+          <Text style={styles.sectionTitle}>{t('staff.catalogTitle')}</Text>
+          <TouchableOpacity onPress={shareCatalog}>
             <Text style={styles.shareLink}>{t('staff.sharePosList')}</Text>
           </TouchableOpacity>
         </View>
         <Text style={styles.posNote}>{t('staff.posListNote')}</Text>
-        {loading && offers.length === 0 ? (
-          <ActivityIndicator color={Colors.gold} />
-        ) : (
-          offers.map((offer) => (
-            <View key={offer.id} style={[styles.offerRow, !offer.is_active && styles.offerInactive]}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.offerTitle}>{offer.title}</Text>
-                <Text style={styles.offerMeta}>
-                  {offer.offer_kind === 'promo' ? t('staff.kindPromo') : t('staff.kindMoney')}
-                  {' · '}
-                  {Number(offer.euro_value) > 0 ? `${offer.euro_value}€ · ` : ''}
-                  {offer.points_cost} pts
-                  {!offer.is_active ? ` · ${t('staff.inactive')}` : ''}
-                </Text>
-              </View>
-              {offer.is_active && (
-                <TouchableOpacity onPress={() => handleDeactivate(offer)}>
-                  <Ionicons name="trash-outline" size={22} color="#B00020" />
-                </TouchableOpacity>
-              )}
+
+        {POS_DISCOUNT_KINDS.map((kind) => {
+          const items = discountsOfKind(kind);
+          return (
+            <View key={kind} style={styles.group}>
+              <Text style={styles.groupTitle}>{t(kindLabelKey(kind))}</Text>
+              {items.map((discount) => {
+                const visibility = visibilityFor(discount, saved);
+                const shown = isDiscountVisibleToCustomers(discount, visibility, today);
+                const busy = savingId === discount.id;
+                const status = visibility.hidden
+                  ? t('staff.hiddenFromCustomers')
+                  : visibility.visibleFrom && visibility.visibleFrom > today
+                    ? t('staff.visibleFromDate', { date: formatPtDate(visibility.visibleFrom) })
+                    : t('staff.visibleNow');
+                return (
+                  <View key={discount.id} style={styles.card}>
+                    <View style={styles.cardHead}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.offerTitle}>{t(`staff.catalogItems.${discount.id}`)}</Text>
+                        <Text style={styles.offerMeta}>
+                          {discount.pointsCost != null ? `${discount.pointsCost} pts` : ''}
+                          {discount.lkmCode != null ? ` · LKM ${discount.lkmCode}` : ''}
+                        </Text>
+                        <Text style={[styles.status, shown ? styles.statusOn : styles.statusOff]}>{status}</Text>
+                      </View>
+                      {busy ? <ActivityIndicator color={Colors.gold} /> : null}
+                    </View>
+                    <View style={styles.switchRow}>
+                      <Text style={styles.switchLabel}>{t('staff.visibleToCustomers')}</Text>
+                      <Switch
+                        value={!visibility.hidden}
+                        disabled={busy || loading}
+                        onValueChange={(visible) => {
+                          void persist(discount, !visible, visibility.visibleFrom);
+                        }}
+                        trackColor={{ false: '#d8d0c4', true: Colors.goldLight }}
+                        thumbColor={!visibility.hidden ? Colors.gold : '#f4f3f4'}
+                      />
+                    </View>
+                    <Text style={styles.dateLabel}>{t('staff.visibleFromLabel')}</Text>
+                    <View style={styles.dateRow}>
+                      <TextInput
+                        style={styles.dateInput}
+                        value={drafts[discount.id] ?? ''}
+                        onChangeText={(text) => {
+                          setDrafts((rows) => ({ ...rows, [discount.id]: maskDate(text) }));
+                        }}
+                        onEndEditing={() => saveDate(discount)}
+                        placeholder={t('staff.visibleFromPlaceholder')}
+                        placeholderTextColor="#aaa"
+                        keyboardType="number-pad"
+                        maxLength={10}
+                        editable={!busy && !loading}
+                      />
+                      {(drafts[discount.id] ?? '') !== '' ? (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setDrafts((rows) => ({ ...rows, [discount.id]: '' }));
+                            if (visibility.visibleFrom != null) void persist(discount, visibility.hidden, null);
+                          }}
+                          disabled={busy || loading}
+                        >
+                          <Text style={styles.clearDate}>{t('staff.clearDate')}</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                    <Text style={styles.dateHint}>{t('staff.visibleFromHint')}</Text>
+                  </View>
+                );
+              })}
             </View>
-          ))
-        )}
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -432,64 +307,11 @@ export default function AdminOffersScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  scrollView: { flex: 1 },
   scroll: { paddingHorizontal: 20, flexGrow: 1 },
   back: { color: Colors.gold, fontSize: 16, marginBottom: 12 },
   title: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
   hint: { fontSize: 14, color: '#757575', marginBottom: 16, lineHeight: 20 },
-  kindRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  kindBtn: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: '#E8E0D5',
-    borderRadius: 20,
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  kindBtnActive: { borderColor: Colors.gold, backgroundColor: 'rgba(191,153,78,0.12)' },
-  kindText: { fontSize: 14, color: Colors.textPrimary },
-  kindTextActive: { color: Colors.gold, fontWeight: '700' },
-  form: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E8E0D5',
-    marginBottom: 28,
-    gap: 8,
-  },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.textPrimary, marginTop: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e0d8cc',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: Colors.textPrimary,
-    backgroundColor: '#Faf8f5',
-  },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    borderWidth: 1.5,
-    borderColor: '#E8E0D5',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-  },
-  chipActive: { borderColor: Colors.gold, backgroundColor: 'rgba(191,153,78,0.12)' },
-  chipText: { fontSize: 13, color: Colors.textPrimary },
-  chipTextActive: { color: Colors.gold, fontWeight: '700' },
-  itemListScroll: {
-    maxHeight: 260,
-    borderWidth: 1,
-    borderColor: '#E8E0D5',
-    borderRadius: 12,
-  },
-  itemList: {
-    overflow: 'hidden',
-  },
   sectionHead: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -497,62 +319,54 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 8,
   },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
   shareLink: { color: Colors.gold, fontSize: 13, fontWeight: '700' },
   posNote: { fontSize: 12, color: '#757575', lineHeight: 18, marginBottom: 12 },
-  categoryHeader: {
-    fontSize: 12,
+  group: { marginBottom: 8 },
+  groupTitle: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#757575',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 4,
-    backgroundColor: '#Faf8f5',
-  },
-  itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0ebe3',
-  },
-  itemRowActive: { backgroundColor: 'rgba(191,153,78,0.12)' },
-  itemName: { fontSize: 14, color: Colors.textPrimary, flex: 1 },
-  itemNameActive: { fontWeight: '700', color: Colors.gold },
-  itemPrice: { fontSize: 14, color: '#757575', marginLeft: 8 },
-  preview: {
-    marginTop: 8,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#1a1a1a',
-    gap: 4,
-  },
-  previewTitle: { color: Colors.gold, fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  previewLine: { color: '#fff', fontSize: 14 },
-  previewHint: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 6, lineHeight: 16 },
-  spendNote: { fontSize: 12, color: '#757575', marginTop: 4, lineHeight: 16 },
-  createBtn: {
     marginTop: 12,
-    backgroundColor: Colors.gold,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 8,
   },
-  btnDisabled: { opacity: 0.6 },
-  createBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 12 },
-  offerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E0D5',
-    gap: 12,
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    padding: 14,
+    marginBottom: 10,
   },
-  offerInactive: { opacity: 0.5 },
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   offerTitle: { fontSize: 16, fontWeight: '600', color: Colors.textPrimary },
   offerMeta: { fontSize: 13, color: '#757575', marginTop: 2 },
+  status: { fontSize: 13, fontWeight: '700', marginTop: 6 },
+  statusOn: { color: Colors.gold },
+  statusOff: { color: '#757575' },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 12,
+  },
+  switchLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  dateLabel: { fontSize: 13, fontWeight: '600', color: Colors.textPrimary, marginTop: 8 },
+  dateRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6 },
+  dateInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E8E0D5',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: Colors.textPrimary,
+    backgroundColor: '#fff',
+  },
+  clearDate: { color: Colors.gold, fontSize: 13, fontWeight: '700' },
+  dateHint: { fontSize: 12, color: '#757575', lineHeight: 17, marginTop: 6 },
 });

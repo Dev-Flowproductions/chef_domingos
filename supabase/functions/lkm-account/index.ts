@@ -31,11 +31,19 @@ async function saveCardToUser(
   accessToken: string,
 ) {
   const db = serviceDb();
-  const shortCode = generateShortCode();
-  const { error } = await db
+  const { data: existing } = await db
     .from('users')
-    .update({ lkm_card_code: cardCode, lkm_access_token: accessToken, short_code: shortCode })
-    .eq('id', userId);
+    .select('short_code, lkm_access_token')
+    .eq('id', userId)
+    .maybeSingle();
+  const shortCode = existing?.short_code || generateShortCode();
+  const patch: Record<string, string> = {
+    lkm_card_code: cardCode,
+    short_code: shortCode,
+  };
+  // Never wipe a working till token with an empty login response.
+  if (accessToken) patch.lkm_access_token = accessToken;
+  const { error } = await db.from('users').update(patch).eq('id', userId);
   if (error) throw new Error(`Failed to save card: ${error.message}`);
   return shortCode;
 }
@@ -100,8 +108,6 @@ async function registerEmail(userId: string, body: Record<string, unknown>) {
     { method: 'POST', body: payload },
   );
 
-  console.log('[lkm-account] registerEmail raw response:', JSON.stringify(result));
-
   // Registerv2 returns an array of {Key, Value} pairs: [{Key:"LKA_CLIENTES",Value:{COD_CARTAO,...}}]
   // Fall back to direct object fields for other LKM environments.
   let cardCode    = '';
@@ -132,7 +138,6 @@ async function userLogin(userId: string, email: string, password: string) {
     '/v2/Account/UserLogin',
     { queryParams: { clientUser: email, password } },
   );
-  console.log('[lkm-account] UserLogin raw response:', JSON.stringify(result));
   // LKM returns COD_CARTAO (uppercase) not CodCartao
   const cardCode = String(
     result.COD_CARTAO ?? result.CodCartao ?? result.codCard ?? result.CardCode ?? result.cardCode ?? '',
@@ -163,8 +168,6 @@ async function linkCard(userId: string, body: Record<string, unknown>) {
     throw new Error('Provide phone or email to link card');
   }
 
-  console.log('[lkm-account] linkCard raw response:', JSON.stringify(result));
-
   // GetCardForEmail/GetCardForPhone return the card code as a bare JSON string
   // (e.g. "1119000000001"), not an object — this endpoint carries no AccessToken.
   let cardCode = '';
@@ -187,6 +190,18 @@ async function linkCard(userId: string, body: Record<string, unknown>) {
 
 async function ensureLinked(userId: string, email?: string, name?: string, password?: string) {
   const existing = await getProfile(userId);
+  // A card code alone is not enough: points and history need the till access token.
+  if (existing.linked && existing.hasAccessToken) return existing;
+  if (existing.linked && !existing.hasAccessToken && password && email) {
+    try {
+      await userLogin(userId, email, password);
+      const refreshed = await getProfile(userId);
+      if (refreshed.hasAccessToken) return refreshed;
+    } catch (loginErr) {
+      console.warn('[lkm-account] token refresh failed:', (loginErr as Error).message);
+    }
+    return existing;
+  }
   if (existing.linked) return existing;
 
   if (!email) {
@@ -259,6 +274,7 @@ async function getProfile(userId: string) {
     linked:    true,
     cardCode:  data.lkm_card_code,
     shortCode: data.short_code,
+    hasAccessToken: Boolean(data.lkm_access_token),
   };
 
   // LKM refresh is best-effort — QR still works from DB card code if LKM is unreachable.

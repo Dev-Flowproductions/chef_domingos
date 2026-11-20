@@ -109,8 +109,9 @@ export default function ProfileScreen() {
     <View style={styles.root}>
       <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: (insets.bottom || 8) + 88 }]}
       >
         <View style={styles.logoWrap}>
           <JDLogo size="small" />
@@ -194,6 +195,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  scrollView: { flex: 1 },
   bg: {
     position: 'absolute',
     width: 874,

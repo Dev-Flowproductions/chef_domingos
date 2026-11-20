@@ -10,7 +10,7 @@ export async function ensureLkmCardLinked(opts?: {
 }): Promise<LkmProfile> {
   try {
     const profile = await getLkmProfile();
-    if (profile.linked && profile.cardCode) return profile;
+    if (profile.linked && profile.cardCode && profile.hasAccessToken !== false) return profile;
 
     const ensured = await lkmCall<LkmProfile>('lkm-account', {
       method: 'POST',

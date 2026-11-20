@@ -64,8 +64,9 @@ export default function MyVouchersScreen() {
     <View style={styles.root}>
       <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
       <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: (insets.bottom || 8) + 88 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />
         }
@@ -136,6 +137,7 @@ export default function MyVouchersScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  scrollView: { flex: 1 },
   bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 4 },
@@ -164,6 +166,13 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.gold,
     backgroundColor: '#fff',
+  },
+  scanHint: {
+    fontSize: 13,
+    color: '#757575',
+    marginTop: 12,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   code: { fontSize: 16, color: Colors.gold, marginTop: 12, letterSpacing: 1 },
   copyBtn: {

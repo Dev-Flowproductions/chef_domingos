@@ -61,15 +61,15 @@ export default function EmailLoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" pointerEvents="none" />
       <ScrollView
-        contentContainerStyle={[styles.container, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
+        style={styles.scroll}
+        contentContainerStyle={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
         keyboardShouldPersistTaps="handled"
       >
-        <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
-
         <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
@@ -127,9 +127,11 @@ export default function EmailLoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1 },
   container: {
     flexGrow: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
     paddingHorizontal: 32,
   },
   bg: { position: 'absolute', width: 874, height: 874, left: -275, top: 0, opacity: 0.4 },

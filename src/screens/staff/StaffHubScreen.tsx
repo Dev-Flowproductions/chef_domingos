@@ -34,6 +34,7 @@ export default function StaffHubScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
@@ -107,6 +108,7 @@ export default function StaffHubScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  scrollView: { flex: 1 },
   scroll: { paddingHorizontal: 20, flexGrow: 1 },
   close: { alignSelf: 'flex-end', padding: 8 },
   title: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginTop: 8 },

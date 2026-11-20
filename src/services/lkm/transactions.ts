@@ -17,6 +17,7 @@ export interface TransactionsResponse {
   page:         number;
   perPage:      number;
   filter:       TxFilter;
+  hasMore?:     boolean;
 }
 
 export async function getTransactions(

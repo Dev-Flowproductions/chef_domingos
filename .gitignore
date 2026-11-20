@@ -79,3 +79,9 @@ supabase/.temp/
 *-deploy-args.json
 mcp-deploy-*.json
 mcp-arg*.json
+tmp-*
+tmp-deploy-parts/
+supabase/functions/.deploy-*/
+supabase/functions/**/*.bundled.ts
+scripts/capture-tutorial-screens.mjs
+scripts/recapture-admin-shots.mjs

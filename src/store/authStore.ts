@@ -10,6 +10,7 @@ import { lkmCall } from '../services/lkm/client';
 import { ensureUserRow } from '../lib/ensureUserProfile';
 import { withTimeout } from '../lib/withTimeout';
 import { useUserStore } from './userStore';
+import { usePointsStore } from './pointsStore';
 
 const LKM_PENDING_PWD_KEY = 'lkm_pending_password';
 
@@ -103,8 +104,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         await ensureUserRow(sessionData.session.user);
       }
       const lkmResult = await ensureLkmCardLinked({ name: displayName, password: _password });
-      if (lkmResult.linked) {
+      if (lkmResult.linked && lkmResult.hasAccessToken !== false) {
         await SecureStore.deleteItemAsync(LKM_PENDING_PWD_KEY).catch(() => {});
+        void usePointsStore.getState().fetch();
       }
     } catch (lkmErr) {
       console.warn('[authStore] LKM link on login failed:', lkmErr);
@@ -134,7 +136,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       await SecureStore.setItemAsync(LKM_PENDING_PWD_KEY, _password).catch(() => {});
       try {
         const lkmResult = await ensureLkmCardLinked({ name: _name, password: _password });
-        if (lkmResult.linked) {
+        if (lkmResult.linked && lkmResult.hasAccessToken !== false) {
           await SecureStore.deleteItemAsync(LKM_PENDING_PWD_KEY).catch(() => {});
         }
       } catch (lkmErr) {
@@ -218,8 +220,11 @@ export const useAuthStore = create<AuthState>((set) => ({
               const lkmResult = await ensureLkmCardLinked(
                 pendingPwd ? { name: displayName, password: pendingPwd } : undefined,
               );
-              if (lkmResult.linked && pendingPwd) {
+              if (lkmResult.linked && lkmResult.hasAccessToken !== false && pendingPwd) {
                 await SecureStore.deleteItemAsync(LKM_PENDING_PWD_KEY).catch(() => {});
+              }
+              if (lkmResult.linked && lkmResult.hasAccessToken) {
+                void usePointsStore.getState().fetch();
               }
             } catch (err) {
               console.warn('[authStore] ensureLkmCardLinked failed:', err);
