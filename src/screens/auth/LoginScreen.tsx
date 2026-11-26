@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +10,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { Colors, Assets } from '../../lib/theme';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
+import { PageFrame } from '../../components/PageFrame';
 import { useAuthStore } from '../../store/authStore';
 import { USE_MOCK } from '../../lib/config';
 import JDLogo from '../../components/JDLogo';
@@ -34,8 +35,9 @@ export default function LoginScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+      <PageBackground />
 
+      <PageFrame maxWidth={480} style={styles.authFrame}>
       <View style={styles.logoWrap}>
         <JDLogo size="large" />
       </View>
@@ -55,6 +57,7 @@ export default function LoginScreen() {
           <Text style={styles.registerText}>{t('auth.noAccount')}</Text>
         </TouchableOpacity>
       </View>
+      </PageFrame>
     </View>
   );
 }
@@ -64,15 +67,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
     paddingHorizontal: 48,
+    overflow: 'hidden',
   },
-  bg: {
-    position: 'absolute',
-    width: 874,
-    height: 874,
-    left: -275,
-    top: 0,
-    opacity: 0.4,
-  },
+  authFrame: { flex: 1, justifyContent: 'center', width: '100%' },
   logoWrap: {
     alignItems: 'center',
     marginBottom: 16,

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -15,7 +14,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { Colors, Assets } from '../../lib/theme';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
+import { PageFrame, TEXT_COLUMN } from '../../components/PageFrame';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
 import { useLocaleStore, AppLocale } from '../../store/localeStore';
@@ -96,12 +97,13 @@ export default function EditProfileScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.root}>
-        <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+        <PageBackground />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}
           keyboardShouldPersistTaps="handled"
         >
+          <PageFrame maxWidth={TEXT_COLUMN}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.back}>{t('common.back')}</Text>
           </TouchableOpacity>
@@ -180,6 +182,7 @@ export default function EditProfileScreen() {
               </TouchableOpacity>
             </View>
           )}
+          </PageFrame>
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
@@ -187,9 +190,8 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
   scrollView: { flex: 1 },
-  bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   back: { color: Colors.gold, fontSize: 16, marginBottom: 16 },
   title: { fontSize: 28, color: Colors.gold, marginBottom: 24 },

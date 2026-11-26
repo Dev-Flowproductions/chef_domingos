@@ -6,6 +6,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
 import { hasAdminAccess } from '../../lib/adminAccess';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
@@ -33,6 +34,7 @@ export default function StaffHubScreen() {
 
   return (
     <View style={styles.root}>
+      <PageBackground />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -107,9 +109,9 @@ export default function StaffHubScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
   scrollView: { flex: 1 },
-  scroll: { paddingHorizontal: 20, flexGrow: 1 },
+  scroll: { paddingHorizontal: 20, flexGrow: 1, width: '100%', maxWidth: 800, alignSelf: 'center' },
   close: { alignSelf: 'flex-end', padding: 8 },
   title: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginTop: 8 },
   subtitle: { fontSize: 14, color: '#757575', marginTop: 8, marginBottom: 28 },

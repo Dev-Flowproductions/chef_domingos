@@ -16,6 +16,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
 import { RESTAURANT_IDS, RESTAURANT_MENUS, type RestaurantId } from '../../lib/menuI18n';
 import { hasAdminAccess } from '../../lib/adminAccess';
 import { useAuthStore } from '../../store/authStore';
@@ -154,6 +155,7 @@ export default function AdminMenuScreen() {
 
   return (
     <View style={styles.root}>
+      <PageBackground />
       <ScrollView
         style={styles.scrollView}
         nestedScrollEnabled
@@ -387,9 +389,9 @@ export default function AdminMenuScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
   scrollView: { flex: 1 },
-  scroll: { paddingHorizontal: 20, flexGrow: 1 },
+  scroll: { paddingHorizontal: 20, flexGrow: 1, width: '100%', maxWidth: 800, alignSelf: 'center' },
   back: { color: Colors.gold, fontSize: 16, marginBottom: 12 },
   title: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
   hint: { fontSize: 14, color: '#757575', marginBottom: 16, lineHeight: 20 },

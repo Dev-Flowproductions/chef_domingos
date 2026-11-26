@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   ScrollView,
   TouchableOpacity,
   Alert,
@@ -14,7 +13,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { Colors, Assets } from '../../lib/theme';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
+import { PageFrame, TEXT_COLUMN } from '../../components/PageFrame';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
 import { useLocaleStore, AppLocale } from '../../store/localeStore';
@@ -107,12 +108,13 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.root}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+      <PageBackground />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: (insets.bottom || 8) + 88 }]}
       >
+        <PageFrame maxWidth={TEXT_COLUMN}>
         <View style={styles.logoWrap}>
           <JDLogo size="small" />
         </View>
@@ -174,36 +176,31 @@ export default function ProfileScreen() {
           <Text style={styles.signOutText}>{t('profile.signOut')}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.deleteBtn}
-          onPress={confirmDeleteAccount}
-          disabled={deleting}
-          activeOpacity={0.85}
-        >
-          {deleting ? (
-            <ActivityIndicator color="#B00020" />
-          ) : (
-            <Text style={styles.deleteText}>{t('profile.deleteAccount')}</Text>
-          )}
-        </TouchableOpacity>
+        {isAdmin ? null : (
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={confirmDeleteAccount}
+            disabled={deleting}
+            activeOpacity={0.85}
+          >
+            {deleting ? (
+              <ActivityIndicator color="#B00020" />
+            ) : (
+              <Text style={styles.deleteText}>{t('profile.deleteAccount')}</Text>
+            )}
+          </TouchableOpacity>
+        )}
 
         <View style={{ height: 24 }} />
+        </PageFrame>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
   scrollView: { flex: 1 },
-  bg: {
-    position: 'absolute',
-    width: 874,
-    height: 874,
-    left: -274,
-    top: 0,
-    opacity: 0.4,
-  },
   scroll: { paddingHorizontal: 20 },
   logoWrap: { alignItems: 'center', marginBottom: 8 },
   pageTitle: {

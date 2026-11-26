@@ -93,6 +93,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   return (
     <View style={[styles.tabBar, { paddingBottom: insets.bottom || 8 }]}>
+      <View style={styles.tabRow}>
       {state.routes.map((route: any, index: number) => {
         const labelKey = TAB_LABEL_KEYS[route.name];
         const label = labelKey ? t(labelKey) : route.name;
@@ -154,6 +155,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           </TouchableOpacity>
         );
       })}
+      </View>
     </View>
   );
 }
@@ -262,6 +264,7 @@ export default function RootNavigator() {
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
+    justifyContent: 'center',
     backgroundColor: '#fff',
     paddingTop: 8,
     shadowColor: '#000',
@@ -269,6 +272,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 20,
     elevation: 20,
+  },
+  tabRow: {
+    flexDirection: 'row',
+    width: '100%',
+    maxWidth: 760,
   },
   tabItem: {
     flex: 1,

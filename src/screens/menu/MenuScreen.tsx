@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
@@ -11,7 +10,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { Colors, Assets } from '../../lib/theme';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
+import { PageFrame, TEXT_COLUMN } from '../../components/PageFrame';
 import { getRestaurantMenu, type RestaurantId } from '../../lib/menuI18n';
 import type { HomeStackParamList } from '../../navigation/types';
 import JDLogo from '../../components/JDLogo';
@@ -53,7 +54,8 @@ export default function MenuScreen() {
 
   return (
     <View style={styles.root}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" pointerEvents="none" />
+      <PageBackground />
+      <PageFrame maxWidth={TEXT_COLUMN} style={styles.menuFrame}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
@@ -132,6 +134,7 @@ export default function MenuScreen() {
           </View>
         )}
       </ScrollView>
+      </PageFrame>
     </View>
   );
 }
@@ -140,17 +143,11 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: Colors.background,
+    overflow: 'hidden',
   },
+  menuFrame: { flex: 1 },
   scrollView: { flex: 1 },
   header: { paddingHorizontal: 20 },
-  bg: {
-    position: 'absolute',
-    width: 874,
-    height: 874,
-    left: -274,
-    top: 0,
-    opacity: 0.4,
-  },
   scroll: {
     paddingHorizontal: 20,
   },

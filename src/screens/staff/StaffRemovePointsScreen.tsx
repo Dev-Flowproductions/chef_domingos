@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
 import { hasAdminAccess } from '../../lib/adminAccess';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
@@ -315,6 +316,7 @@ export default function StaffRemovePointsScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }]}>
+      <PageBackground />
       <TouchableOpacity style={styles.close} onPress={() => navigation.goBack()}>
         <Ionicons name="close" size={28} color={Colors.textPrimary} />
       </TouchableOpacity>
@@ -517,7 +519,7 @@ export default function StaffRemovePointsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 20 },
+  root: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 20, overflow: 'hidden' },
   close: { alignSelf: 'flex-end', padding: 8 },
   title: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginTop: 8 },
   subtitle: { fontSize: 14, color: '#757575', marginTop: 8, marginBottom: 16, lineHeight: 20 },

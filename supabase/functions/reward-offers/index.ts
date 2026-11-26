@@ -165,30 +165,10 @@ function lisbonToday(): string {
 function isDiscountVisible(
   discount: PosDiscount,
   visibility: DiscountVisibility | undefined,
-  today: string,
+  _today?: string,
 ): boolean {
   const hidden = visibility?.hidden ?? defaultDiscountHidden(discount.kind);
-  if (hidden) return false;
-  const from = visibility?.visibleFrom;
-  if (!from) return true;
-  return from <= today;
-}
-
-function parseIsoDate(value: unknown): string | null {
-  if (value == null || value === '') return null;
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new Error('Invalid date');
-  }
-  const [year, month, day] = value.split('-').map(Number);
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  if (
-    parsed.getUTCFullYear() !== year ||
-    parsed.getUTCMonth() !== month - 1 ||
-    parsed.getUTCDate() !== day
-  ) {
-    throw new Error('Invalid date');
-  }
-  return value;
+  return !hidden;
 }
 
 async function listVisibility(): Promise<Map<string, DiscountVisibility>> {
@@ -210,21 +190,20 @@ async function listVisibility(): Promise<Map<string, DiscountVisibility>> {
   return map;
 }
 
-async function setVisibility(catalogKey: string, hidden: unknown, visibleFrom: unknown) {
+async function setVisibility(catalogKey: string, hidden: unknown, _visibleFrom: unknown) {
   const item = findPosDiscount(catalogKey);
   if (!item) throw new Error('Unknown discount');
   if (typeof hidden !== 'boolean') throw new Error('Invalid visibility');
-  const date = parseIsoDate(visibleFrom);
 
   const db = serviceDb();
   const { error } = await db.from('pos_discount_visibility').upsert({
     catalog_id: catalogKey,
     hidden,
-    visible_from: date,
+    visible_from: null,
     updated_at: new Date().toISOString(),
   });
   if (error) throw new Error(error.message);
-  return { catalogId: catalogKey, hidden, visibleFrom: date };
+  return { catalogId: catalogKey, hidden, visibleFrom: null };
 }
 
 /** Last money-voucher claim → cooldown end ISO, or null if clear. */

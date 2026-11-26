@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
@@ -15,7 +14,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { Colors, Assets } from '../../lib/theme';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
+import { PageFrame } from '../../components/PageFrame';
 import { useAuthStore } from '../../store/authStore';
 import PasswordInput from '../../components/PasswordInput';
 
@@ -59,7 +60,8 @@ export default function RegisterScreen() {
   if (done) {
     return (
       <View style={[styles.screen, styles.successContainer, { paddingTop: insets.top + 40, paddingHorizontal: 32 }]}>
-        <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" pointerEvents="none" />
+        <PageBackground />
+        <PageFrame maxWidth={480}>
         <Text style={styles.successIcon}>✉️</Text>
         <Text style={styles.successTitle}>{t('auth.verifyEmailTitle')}</Text>
         <Text style={styles.successBody}>
@@ -75,6 +77,7 @@ export default function RegisterScreen() {
         >
           <Text style={styles.btnText}>{t('auth.goToLogin')}</Text>
         </TouchableOpacity>
+        </PageFrame>
       </View>
     );
   }
@@ -84,13 +87,14 @@ export default function RegisterScreen() {
       style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" pointerEvents="none" />
+      <PageBackground />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <PageFrame maxWidth={480}>
         <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
@@ -182,26 +186,19 @@ export default function RegisterScreen() {
             <Text style={styles.loginLink}>{t('auth.hasAccount')}</Text>
           </TouchableOpacity>
         </View>
+        </PageFrame>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
+  screen: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
   scroll: { flex: 1 },
   container: {
     flexGrow: 1,
     backgroundColor: 'transparent',
     paddingHorizontal: 32,
-  },
-  bg: {
-    position: 'absolute',
-    width: 874,
-    height: 874,
-    left: -275,
-    top: 0,
-    opacity: 0.4,
   },
   back: { alignSelf: 'flex-start', marginBottom: 8 },
   backText: { color: Colors.gold, fontSize: 16 },

@@ -15,17 +15,20 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Assets } from '../../lib/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
+import { PageFrame, usePageLayout, WIDE_COLUMN } from '../../components/PageFrame';
 import { usePointsStore } from '../../store/pointsStore';
 import { useAuthStore } from '../../store/authStore';
 import { useVouchersStore } from '../../store/vouchersStore';
 import JDLogo from '../../components/JDLogo';
+import { UseVoucherModal } from '../../components/UseVoucherModal';
 import { localizeCatalogItem } from '../../lib/offerI18n';
+import { discountCardImage, discountCardTheme, discountCustomerCopy } from '../../lib/discountCards';
 import {
   POS_DISCOUNT_CATALOG,
   isDiscountVisibleToCustomers,
-  lisbonDateISO,
-  type PosDiscount,
   type PosDiscountVisibility,
 } from '../../lib/posDiscountCatalog';
 import { listDiscountVisibility, type DiscountVisibilityRow } from '../../services/lkm/rewardOffers';
@@ -34,48 +37,15 @@ import type { RewardsStackParamList } from '../../navigation/types';
 
 type RewardsNav = NativeStackNavigationProp<RewardsStackParamList, 'RewardsMain'>;
 
-function moneyOfferCopyKey(euroValue: number | null): 'v5' | 'v10' | 'v20' | 'v30' {
-  switch (euroValue) {
-    case 5:
-      return 'v5';
-    case 10:
-      return 'v10';
-    case 20:
-      return 'v20';
-    case 30:
-      return 'v30';
-    default:
-      return 'v5';
-  }
-}
-
 function visibilityMap(rows: DiscountVisibilityRow[]): Map<string, PosDiscountVisibility> {
   return new Map(rows.map((row) => [row.catalogId, { hidden: row.hidden, visibleFrom: row.visibleFrom }]));
 }
 
-function customerCopy(discount: PosDiscount, t: (key: string, options?: Record<string, unknown>) => string) {
-  if (discount.kind === 'money' && discount.euroValue != null) {
-    const offerKey = moneyOfferCopyKey(discount.euroValue);
-    return {
-      title: t(`offers.${offerKey}.title`),
-      description: t(`offers.${offerKey}.description`),
-      restaurantName: t(`offers.${offerKey}.tag`),
-    };
-  }
-  return {
-    title: t(`staff.catalogItems.${discount.id}`),
-    description: t('rewards.tillDiscountDescription', { count: discount.pointsCost ?? 0 }),
-    restaurantName: t('rewards.moneyVouchers'),
-  };
-}
-
-const FALLBACK_IMAGES = [
-  require('../../assets/pizza-lab-food.jpg'),
-  require('../../assets/portuguese-lab-food.jpg'),
-];
-
 export default function RecompensasScreen() {
   const insets = useSafeAreaInsets();
+  const { width, isTablet } = usePageLayout(WIDE_COLUMN);
+  const content = Math.min(Math.max(width - 40, 0), WIDE_COLUMN);
+  const voucherWidth = isTablet ? (content - 16) / 2 : undefined;
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<RewardsNav>();
 
@@ -93,6 +63,7 @@ export default function RecompensasScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [nowTick, setNowTick] = useState(Date.now());
   const [visibility, setVisibility] = useState<Map<string, PosDiscountVisibility>>(new Map());
+  const [voucherUse, setVoucherUse] = useState<{ title: string; cost: number } | null>(null);
 
   const loadVisibility = async () => {
     try {
@@ -122,16 +93,11 @@ export default function RecompensasScreen() {
     [moneyCooldownUntil, nowTick],
   );
   const moneyBlocked = cooldownMs > 0;
-  const redeemBlocked = moneyBlocked || hasActiveVoucher;
 
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([fetchPoints(), fetchCatalog(), fetchMyVouchers(), loadVisibility()]);
     setRefreshing(false);
-  };
-
-  const openGanhar = () => {
-    navigation.getParent()?.navigate('Ganhar' as never);
   };
 
   const handlePosPrize = (title: string, cost: number) => {
@@ -142,10 +108,7 @@ export default function RecompensasScreen() {
       );
       return;
     }
-    Alert.alert(t('rewards.posPrizeTitle'), t('rewards.posPrizeBody', { title, cost }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('rewards.posPrizeShowQr'), onPress: openGanhar },
-    ]);
+    setVoucherUse({ title, cost });
   };
 
   const handleClaim = async (catalogId: string, title: string, cost: number, euroValue?: number) => {
@@ -222,11 +185,10 @@ export default function RecompensasScreen() {
     );
   };
 
-  const today = lisbonDateISO();
   const catalogList = POS_DISCOUNT_CATALOG.filter(
-    (discount) => discount.pointsCost != null && isDiscountVisibleToCustomers(discount, visibility.get(discount.id), today),
+    (discount) => discount.pointsCost != null && isDiscountVisibleToCustomers(discount, visibility.get(discount.id)),
   ).map((discount) => {
-    const copy = customerCopy(discount, t);
+    const copy = discountCustomerCopy(discount, t);
     return {
       id: discount.id,
       title: copy.title,
@@ -243,14 +205,16 @@ export default function RecompensasScreen() {
   const activeCount = myVouchers.filter((v) => v.state === 'active' || v.state === 'pending').length;
 
   return (
+    <>
     <View style={styles.root}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+      <PageBackground />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12, paddingBottom: (insets.bottom || 8) + 88 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />}
       >
+        <PageFrame maxWidth={WIDE_COLUMN}>
         <View style={styles.logoWrap}>
           <JDLogo size="small" />
         </View>
@@ -283,56 +247,63 @@ export default function RecompensasScreen() {
         <Text style={[styles.sectionTitle, { marginBottom: 4 }]}>{t('rewards.moneyVouchers')}</Text>
         <Text style={styles.sectionSubtitle}>{t('rewards.moneyVouchersHint')}</Text>
 
-        <View style={styles.list}>
+        <View style={[styles.list, isTablet && styles.listTablet]}>
             {list.length === 0 ? <Text style={styles.sectionSubtitle}>{t('rewards.noVisibleDiscounts')}</Text> : null}
-            {list.map((raw, i) => {
+            {list.map((raw) => {
               const v = localizeCatalogItem(raw, t);
-              const posPrize = true;
-              const disabled = claiming;
+              const isLight = discountCardTheme(v.id) === 'light';
               return (
-                <View key={v.id} style={[styles.voucher, !posPrize && redeemBlocked && styles.voucherDimmed]}>
+                <TouchableOpacity
+                  key={v.id}
+                  activeOpacity={0.9}
+                  onPress={() => handleClaim(v.id, v.title, v.pointsCost, v.euroValue)}
+                  disabled={claiming}
+                  style={[styles.voucher, voucherWidth != null && { width: voucherWidth }, isLight && styles.voucherLight]}
+                >
                   <Image
-                    source={v.imageUrl ? { uri: v.imageUrl } : FALLBACK_IMAGES[i % 2]}
+                    source={discountCardImage(v.id)}
                     style={styles.voucherBg}
                     resizeMode="cover"
                   />
-                  <View style={styles.overlay} />
+                  <LinearGradient
+                    colors={
+                      isLight
+                        ? ['rgba(255,255,255,0.98)', 'rgba(255,255,255,0.9)', 'rgba(255,255,255,0)']
+                        : ['rgba(10,10,10,0.97)', 'rgba(10,10,10,0.78)', 'rgba(0,0,0,0)']
+                    }
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={styles.voucherGradient}
+                  />
                   <View style={styles.voucherContent}>
-                    <Text style={styles.vTag}>{v.restaurantName}</Text>
+                    <Text style={[styles.vTag, isLight && styles.vTagLight]}>{v.restaurantName}</Text>
                     <Text style={styles.vTitle}>{v.title}</Text>
-                    <Text style={styles.vValid}>{v.description}</Text>
-                    <TouchableOpacity
-                      style={[styles.vBtn, disabled && styles.vBtnDisabled]}
-                      activeOpacity={0.85}
-                      onPress={() => handleClaim(v.id, v.title, v.pointsCost, v.euroValue)}
-                      disabled={disabled}
-                    >
-                      <Text style={styles.vBtnText}>
-                        {posPrize
-                          ? t('rewards.useAtTill', { count: v.pointsCost })
-                          : hasActiveVoucher
-                            ? t('rewards.noStackShort')
-                            : moneyBlocked
-                              ? t('rewards.cooldownShort')
-                              : t('rewards.redeemForPoints', { count: v.pointsCost })}
-                      </Text>
-                    </TouchableOpacity>
+                    <View style={styles.vBtn}>
+                      <Text style={styles.vBtnText}>{t('rewards.ptsShort', { count: v.pointsCost })}</Text>
+                    </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
         </View>
 
         <View style={{ height: 24 }} />
+        </PageFrame>
       </ScrollView>
     </View>
+    <UseVoucherModal
+      visible={voucherUse != null}
+      title={voucherUse?.title ?? ''}
+      points={voucherUse?.cost ?? 0}
+      onClose={() => setVoucherUse(null)}
+    />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
   scrollView: { flex: 1 },
-  bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   logoWrap: { alignItems: 'center', marginBottom: 4 },
   pointsBlock: { alignItems: 'center', marginBottom: 24 },
@@ -373,24 +344,26 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   list: { gap: 16 },
+  listTablet: { flexDirection: 'row', flexWrap: 'wrap' },
   voucher: {
     height: 189,
     borderRadius: 13,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#0a0a0a',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
-  voucherDimmed: { opacity: 0.72 },
+  voucherLight: { backgroundColor: '#ffffff' },
   voucherBg: { position: 'absolute', width: '100%', height: '100%' },
-  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.48)' },
-  voucherContent: { flex: 1, padding: 20, justifyContent: 'center' },
-  vTag: { color: '#fff', fontSize: 14, marginBottom: 4 },
+  voucherGradient: { position: 'absolute', top: 0, left: 0, bottom: 0, width: '72%' },
+  voucherContent: { width: '62%', flex: 1, padding: 20, justifyContent: 'center' },
+  vTag: { color: 'rgba(255,255,255,0.75)', fontSize: 14, marginBottom: 4 },
+  vTagLight: { color: 'rgba(60,60,60,0.75)' },
   vTitle: { color: Colors.gold, fontSize: 19, fontWeight: '700', lineHeight: 24, marginBottom: 8 },
-  vValid: { color: '#fff', fontSize: 14, marginBottom: 12 },
   vBtn: {
     backgroundColor: Colors.gold,
     borderRadius: 16,

@@ -42,7 +42,7 @@ export function findPosDiscount(id: string): PosDiscount | undefined {
 
 export type PosDiscountVisibility = {
   hidden: boolean;
-  /** First calendar day (YYYY-MM-DD, Europe/Lisbon) the discount may appear. Null means no start date. */
+  /** Kept for stored rows. Visibility is only the hidden switch. */
   visibleFrom: string | null;
 };
 
@@ -73,13 +73,10 @@ export function lisbonDateISO(now = new Date()): string {
 export function isDiscountVisibleToCustomers(
   discount: Pick<PosDiscount, 'kind'>,
   visibility: PosDiscountVisibility | undefined,
-  todayISO: string,
+  _todayISO?: string,
 ): boolean {
   const hidden = visibility?.hidden ?? defaultDiscountHidden(discount.kind);
-  if (hidden) return false;
-  const from = visibility?.visibleFrom;
-  if (!from) return true;
-  return from <= todayISO;
+  return !hidden;
 }
 
 export function offerMatchesPosDiscount(

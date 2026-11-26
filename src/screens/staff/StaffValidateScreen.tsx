@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
 import { validateStaffVoucher, VoucherValidationStatus } from '../../services/lkm/vouchers';
 import { unvalidateLocalVoucher, validateLocalVoucher } from '../../services/lkm/rewardOffers';
 import { hasAdminAccess } from '../../lib/adminAccess';
@@ -172,6 +173,7 @@ export default function StaffValidateScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }]}>
+      <PageBackground />
       <TouchableOpacity style={styles.close} onPress={() => navigation.goBack()}>
         <Ionicons name="close" size={28} color={Colors.textPrimary} />
       </TouchableOpacity>
@@ -292,7 +294,7 @@ export default function StaffValidateScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 24 },
+  root: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 24, overflow: 'hidden' },
   scrollView: { flex: 1 },
   scroll: { paddingBottom: 24 },
   close: { alignSelf: 'flex-end', padding: 8 },

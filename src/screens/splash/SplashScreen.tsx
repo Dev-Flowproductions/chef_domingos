@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Assets } from '../../lib/theme';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
 import JDLogo from '../../components/JDLogo';
 
 interface SplashScreenProps {
@@ -38,7 +39,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+      <PageBackground opacity={0.6} />
       <View style={styles.logoWrap}>
         <JDLogo size="large" />
       </View>
@@ -55,14 +56,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  bg: {
-    position: 'absolute',
-    width: 874,
-    height: 874,
-    left: -311,
-    top: 0,
-    opacity: 0.6,
+    overflow: 'hidden',
   },
   logoWrap: {
     alignItems: 'center',

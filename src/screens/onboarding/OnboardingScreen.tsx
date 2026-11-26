@@ -3,19 +3,17 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   FlatList,
-  Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Colors, Assets } from '../../lib/theme';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
 import JDLogo from '../../components/JDLogo';
-
-const { width } = Dimensions.get('window');
 
 const SLIDE_IDS = ['1', '2', '3'] as const;
 
@@ -25,6 +23,7 @@ interface OnboardingProps {
 
 export default function OnboardingScreen({ onFinish }: OnboardingProps) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatRef = useRef<FlatList>(null);
@@ -50,7 +49,7 @@ export default function OnboardingScreen({ onFinish }: OnboardingProps) {
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 16 }]}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+      <PageBackground />
 
       {/* Logo */}
       <View style={[styles.logoWrap, { paddingTop: insets.top + 20 }]}>
@@ -59,6 +58,7 @@ export default function OnboardingScreen({ onFinish }: OnboardingProps) {
 
       {/* Slides */}
       <FlatList
+        key={width}
         ref={flatRef}
         data={slides}
         keyExtractor={(item) => item.id}
@@ -67,8 +67,9 @@ export default function OnboardingScreen({ onFinish }: OnboardingProps) {
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         renderItem={({ item }) => (
-          <View style={styles.slide}>
+          <View style={[styles.slide, { width }]}>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.body}>{item.body}</Text>
           </View>
@@ -104,21 +105,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  bg: {
-    position: 'absolute',
-    width: 874,
-    height: 874,
-    left: -254,
-    top: 0,
-    opacity: 0.4,
+    overflow: 'hidden',
   },
   logoWrap: {
     alignItems: 'center',
     marginBottom: 8,
   },
   slide: {
-    width,
     paddingHorizontal: 44,
     paddingTop: 60,
     alignItems: 'center',
@@ -130,12 +123,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 42,
     marginBottom: 20,
+    maxWidth: 520,
   },
   body: {
     fontSize: 18,
     color: Colors.textPrimary,
     textAlign: 'center',
     lineHeight: 28,
+    maxWidth: 520,
   },
   dots: {
     flexDirection: 'row',
@@ -157,7 +152,10 @@ const styles = StyleSheet.create({
   btns: {
     paddingHorizontal: 48,
     alignItems: 'center',
+    alignSelf: 'center',
     gap: 12,
+    width: '100%',
+    maxWidth: 480,
   },
   nextBtn: {
     backgroundColor: Colors.gold,

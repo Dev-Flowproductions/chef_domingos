@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,40 +6,41 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { HomeStackParamList } from '../../navigation/types';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Assets } from '../../lib/theme';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
+import { PageFrame, usePageLayout, WIDE_COLUMN } from '../../components/PageFrame';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
 import { useUserStore } from '../../store/userStore';
 import { usePointsStore } from '../../store/pointsStore';
-import { useVouchersStore } from '../../store/vouchersStore';
 import JDLogo from '../../components/JDLogo';
+import { UseVoucherModal } from '../../components/UseVoucherModal';
 import RestaurantLogo from '../../components/RestaurantLogo';
+import { discountCardImage, discountCardTheme, discountCustomerCopy } from '../../lib/discountCards';
 import {
-  getFallbackOfferImage,
-  getOfferCardTheme,
-} from '../../lib/offerI18n';
-import { isLkmPosMoneyPrize } from '../../lib/lkmMoneyPrizes';
+  POS_DISCOUNT_CATALOG,
+  isDiscountVisibleToCustomers,
+  type PosDiscountVisibility,
+} from '../../lib/posDiscountCatalog';
+import { listDiscountVisibility, type DiscountVisibilityRow } from '../../services/lkm/rewardOffers';
 import type { RestaurantId } from '../../lib/menuI18n';
 
 type HomeNav = NativeStackNavigationProp<HomeStackParamList, 'HomeMain'>;
 
-const { width } = Dimensions.get('window');
-const CARD_W = width * 0.75;
-
 const RESTAURANTS: {
   id: string;
   restaurantId: RestaurantId;
-  image: number | null;
+  image: number;
   imageScale: number;
   imageBg: string;
 }[] = [
@@ -53,16 +54,17 @@ const RESTAURANTS: {
   {
     id: '2',
     restaurantId: 'pizzaLab',
-    image: null,
-    imageScale: 1,
-    imageBg: '#FEFCF3',
+    image: require('../../assets/pizza-lab-food.jpg'),
+    imageScale: 2.15,
+    imageBg: '#1a1a1a',
   },
 ];
 
 export default function HomeScreen() {
+  const { width, isTablet, content } = usePageLayout(WIDE_COLUMN);
+  const cardW = isTablet ? Math.floor((content - 16) / 2) : width * 0.75;
   const insets     = useSafeAreaInsets();
   const navigation = useNavigation<HomeNav>();
-  const rootNav = useNavigation<any>();
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const { profile, fetchProfile } = useUserStore();
@@ -70,25 +72,38 @@ export default function HomeScreen() {
   const userName = profile?.name || metaName || '—';
 
   const { balance, loading: ptsLoading, error: ptsError, fetch: fetchPoints } = usePointsStore();
-  const {
-    promoCatalog,
-    promoLoading,
-    fetchPromoCatalog,
-    fetchMyVouchers,
-    claim,
-    claiming,
-    hasActiveVoucher,
-  } = useVouchersStore();
+  const [visibility, setVisibility] = useState<Map<string, PosDiscountVisibility>>(new Map());
+  const [promosLoading, setPromosLoading] = useState(true);
 
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     if (user?.id) fetchProfile(user.id);
   }, [user?.id]);
 
+  const loadVisibility = useCallback(async () => {
+    try {
+      const rows = await listDiscountVisibility();
+      setVisibility(new Map(rows.map((row: DiscountVisibilityRow) => [row.catalogId, { hidden: row.hidden, visibleFrom: row.visibleFrom }])));
+    } catch {
+      setVisibility(new Map());
+    } finally {
+      setPromosLoading(false);
+    }
+  }, []);
+
+  const specials = useMemo(
+    () => POS_DISCOUNT_CATALOG.filter(
+      (discount) => discount.kind !== 'money'
+        && discount.pointsCost != null
+        && isDiscountVisibleToCustomers(discount, visibility.get(discount.id)),
+    ),
+    [visibility],
+  );
+
   const refreshHome = useCallback(async () => {
     if (!user?.id) return;
-    await Promise.all([fetchPoints(), fetchPromoCatalog(), fetchMyVouchers(), fetchProfile(user.id)]);
-  }, [user?.id, fetchPoints, fetchPromoCatalog, fetchMyVouchers, fetchProfile]);
+    await Promise.all([fetchPoints(), fetchProfile(user.id), loadVisibility()]);
+  }, [user?.id, fetchPoints, fetchProfile, loadVisibility]);
 
   useFocusEffect(
     useCallback(() => {
@@ -102,11 +117,8 @@ export default function HomeScreen() {
     await refreshHome();
     setRefreshing(false);
   };
-  const handlePromoClaim = (id: string, title: string, cost: number) => {
-    if (hasActiveVoucher) {
-      Alert.alert(t('rewards.noStackTitle'), t('rewards.noStackBody'));
-      return;
-    }
+  const [voucherUse, setVoucherUse] = useState<{ title: string; cost: number } | null>(null);
+  const openSpecial = (title: string, cost: number) => {
     if (balance < cost) {
       Alert.alert(
         t('rewards.insufficientPoints'),
@@ -114,46 +126,55 @@ export default function HomeScreen() {
       );
       return;
     }
-    Alert.alert(
-      t('rewards.claimTitle'),
-      t('rewards.claimConfirmSpend', { title, cost }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('rewards.claim'),
-          onPress: async () => {
-            try {
-              await claim(id);
-              await Promise.all([fetchPoints(), fetchPromoCatalog(), fetchMyVouchers()]);
-              Alert.alert(t('common.success'), t('rewards.claimSuccessQr', { title, cost }), [
-                {
-                  text: t('rewards.viewVouchers'),
-                  onPress: () => rootNav.navigate('Recompensas', { screen: 'MyVouchers' }),
-                },
-                { text: t('common.ok'), style: 'cancel' },
-              ]);
-            } catch (err) {
-              const msg = (err as Error).message;
-              if (msg === 'ACTIVE_VOUCHER') {
-                Alert.alert(t('rewards.noStackTitle'), t('rewards.noStackBody'));
-                await fetchMyVouchers();
-                return;
-              }
-              if (msg === 'TILL_ONLY' || msg === 'POS_PRIZE') {
-                Alert.alert(t('rewards.posPrizeTitle'), t('rewards.moneyVouchersHint'));
-                return;
-              }
-              Alert.alert(t('common.error'), msg);
-            }
-          },
-        },
-      ],
-    );
+    setVoucherUse({ title, cost });
   };
 
+  const promoCards = specials.map((discount) => {
+    const copy = discountCustomerCopy(discount, t);
+    const isLight = discountCardTheme(discount.id) === 'light';
+    return (
+      <TouchableOpacity
+        key={discount.id}
+        style={[styles.voucherShadow, { width: cardW }]}
+        activeOpacity={0.9}
+        onPress={() => openSpecial(copy.title, discount.pointsCost ?? 0)}
+      >
+        <View style={[styles.voucher, isLight && styles.voucherLight]}>
+          <Image
+          source={discountCardImage(discount.id)}
+          style={styles.voucherBg}
+          resizeMode="cover"
+          />
+          <LinearGradient
+          colors={
+            isLight
+              ? ['rgba(255,255,255,0.98)', 'rgba(255,255,255,0.88)', 'rgba(255,255,255,0)']
+              : ['rgba(10,10,10,0.97)', 'rgba(10,10,10,0.75)', 'rgba(0,0,0,0)']
+          }
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.voucherGradient}
+          />
+          <View style={styles.voucherContent}>
+          <Text style={[styles.voucherTag, isLight && styles.voucherTagLight]}>
+            {copy.restaurantName}
+          </Text>
+          <Text style={styles.voucherTitle} numberOfLines={3}>{copy.title}</Text>
+          <View style={styles.voucherBtn}>
+            <Text style={styles.voucherBtnText}>
+              {t('rewards.ptsShort', { count: discount.pointsCost ?? 0 })}
+            </Text>
+          </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  });
+
   return (
+    <>
     <View style={styles.root}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+      <PageBackground />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -162,6 +183,7 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />
         }
       >
+        <PageFrame maxWidth={WIDE_COLUMN}>
         <View style={styles.logoWrap}>
           <JDLogo size="small" />
         </View>
@@ -187,64 +209,22 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('home.exclusiveOffers')}</Text>
           <Text style={styles.sectionHint}>{t('home.promoHint')}</Text>
-          {hasActiveVoucher ? (
-            <Text style={styles.sectionHint}>{t('rewards.noStackBanner')}</Text>
-          ) : null}
         </View>
 
-        {promoLoading ? (
+        {promosLoading ? (
           <ActivityIndicator color={Colors.gold} style={{ marginVertical: 16 }} />
-        ) : promoCatalog.filter((item) => isLkmPosMoneyPrize(item)).length === 0 ? (
+        ) : specials.length === 0 ? (
           <Text style={styles.emptyPromos}>{t('home.noPromos')}</Text>
+        ) : isTablet ? (
+          <View style={styles.voucherGrid}>{promoCards}</View>
         ) : (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.voucherList}
-            style={styles.voucherScroll}
+            style={[styles.voucherScroll, Platform.OS === 'web' ? styles.voucherScrollWeb : null]}
           >
-            {promoCatalog.map((v) => {
-              const isLight = getOfferCardTheme(v) === 'light';
-              return (
-              <TouchableOpacity
-                key={v.id}
-                style={[styles.voucher, isLight && styles.voucherLight, hasActiveVoucher && { opacity: 0.65 }]}
-                activeOpacity={0.9}
-                disabled={claiming || hasActiveVoucher}
-                onPress={() => handlePromoClaim(v.id, v.title, v.pointsCost)}
-              >
-                <Image
-                  source={v.imageUrl ? { uri: v.imageUrl } : getFallbackOfferImage(v)}
-                  style={[styles.voucherBg, isLight ? styles.voucherBgLight : styles.voucherBgDark]}
-                  resizeMode="cover"
-                />
-                <LinearGradient
-                  colors={
-                    isLight
-                      ? ['rgba(255,255,255,0.98)', 'rgba(255,255,255,0.88)', 'rgba(255,255,255,0)']
-                      : ['rgba(10,10,10,0.97)', 'rgba(10,10,10,0.75)', 'rgba(0,0,0,0)']
-                  }
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={styles.voucherGradient}
-                />
-                <View style={styles.voucherContent}>
-                  <Text style={[styles.voucherTag, isLight && styles.voucherTagLight]}>
-                    {v.restaurantName}
-                  </Text>
-                  <Text style={styles.voucherTitle} numberOfLines={3}>{v.title}</Text>
-                  <Text style={[styles.voucherValid, isLight && styles.voucherValidLight]} numberOfLines={2}>
-                    {v.description}
-                  </Text>
-                  <View style={styles.voucherBtn}>
-                    <Text style={styles.voucherBtnText}>
-                      {t('rewards.redeemForPoints', { count: v.pointsCost })}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-            })}
+            {promoCards}
           </ScrollView>
         )}
 
@@ -259,26 +239,28 @@ export default function HomeScreen() {
                 onPress={() => navigation.navigate('Menu', { restaurantId: r.restaurantId })}
                 activeOpacity={0.9}
               >
-                <View style={[styles.restaurantImgWrap, { backgroundColor: r.imageBg }]}>
-                  {r.image ? (
-                    <Image
-                      source={r.image}
-                      style={[styles.restaurantImg, { transform: [{ scale: r.imageScale }] }]}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Image
-                      source={require('../../assets/pizza-lab-logo.png')}
-                      style={styles.pizzaLogo}
-                      resizeMode="contain"
-                      accessibilityLabel="Pizza Lab"
-                    />
-                  )}
+                <View style={[styles.restaurantImgWrap, { backgroundColor: r.imageBg, height: isTablet ? 180 : 130 }]}>
+                  <Image
+                    source={r.image}
+                    style={[styles.restaurantImg, { transform: [{ scale: r.imageScale }] }]}
+                    resizeMode="cover"
+                  />
                 </View>
                 <View style={styles.restaurantFooter}>
-                  <View style={styles.restaurantLogoWrap}>
-                    <RestaurantLogo restaurantId={r.restaurantId} size={54} />
-                  </View>
+                  {r.restaurantId === 'pizzaLab' ? (
+                    <View style={styles.pizzaLogoWrap}>
+                      <Image
+                        source={require('../../assets/pizza-lab-logo.png')}
+                        style={styles.pizzaWordmark}
+                        resizeMode="contain"
+                        accessibilityLabel="Pizza Lab"
+                      />
+                    </View>
+                  ) : (
+                    <View style={styles.restaurantLogoWrap}>
+                      <RestaurantLogo restaurantId={r.restaurantId} size={54} />
+                    </View>
+                  )}
                 </View>
               </TouchableOpacity>
             ))}
@@ -286,15 +268,22 @@ export default function HomeScreen() {
         </View>
 
         <View style={{ height: 24 }} />
+        </PageFrame>
       </ScrollView>
     </View>
+    <UseVoucherModal
+      visible={voucherUse != null}
+      title={voucherUse?.title ?? ''}
+      points={voucherUse?.cost ?? 0}
+      onClose={() => setVoucherUse(null)}
+    />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
   scrollView: { flex: 1 },
-  bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   logoWrap: { alignItems: 'center', marginBottom: 4 },
   pointsBlock: { alignItems: 'center', marginBottom: 24 },
@@ -308,18 +297,19 @@ const styles = StyleSheet.create({
   sectionHint: { fontSize: 12, color: '#757575', marginBottom: 4, lineHeight: 16 },
   emptyPromos: { fontSize: 13, color: '#888', paddingHorizontal: 4, marginBottom: 12 },
   voucherScroll: { marginHorizontal: -20 },
+  voucherScrollWeb: {
+    scrollbarWidth: 'none',
+  },
   voucherList: { paddingHorizontal: 20, gap: 16 },
+  voucherGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  voucherShadow: {
+    borderRadius: 13,
+  },
   voucher: {
-    width: CARD_W,
     height: 170,
     borderRadius: 13,
     overflow: 'hidden',
     backgroundColor: '#0a0a0a',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   voucherLight: {
     backgroundColor: '#ffffff',
@@ -328,12 +318,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     height: '100%',
-  },
-  voucherBgDark: {
-    transform: [{ scale: 1.7 }, { translateX: 68 }],
-  },
-  voucherBgLight: {
-    transform: [{ scale: 1.55 }, { translateX: 58 }],
   },
   voucherGradient: {
     position: 'absolute',
@@ -355,8 +339,6 @@ const styles = StyleSheet.create({
   voucherTag: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 6, letterSpacing: 0.3 },
   voucherTagLight: { color: 'rgba(60,60,60,0.75)' },
   voucherTitle: { color: Colors.gold, fontSize: 16, fontWeight: '700', lineHeight: 22, marginBottom: 10 },
-  voucherValid: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginBottom: 12 },
-  voucherValidLight: { color: 'rgba(60,60,60,0.85)' },
   voucherBtn: {
     backgroundColor: Colors.gold,
     borderRadius: 14,
@@ -388,11 +370,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  pizzaLogo: {
-    width: '88%',
-    height: '72%',
-  },
   restaurantFooter: { backgroundColor: '#fff', paddingVertical: 10, alignItems: 'center', gap: 4 },
   restaurantLogo: { width: 54, height: 54, borderRadius: 27, marginTop: -27, backgroundColor: '#fff' },
   restaurantLogoWrap: { marginTop: -27, backgroundColor: '#fff', borderRadius: 27 },
+  pizzaLogoWrap: {
+    marginTop: -20,
+    backgroundColor: '#FEFCF3',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  pizzaWordmark: { width: 124, height: 36 },
 });

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
@@ -17,7 +16,9 @@ import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import LoyaltyQrImage from '../../components/LoyaltyQrImage';
-import { Colors, Assets } from '../../lib/theme';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
+import { PageFrame, TEXT_COLUMN } from '../../components/PageFrame';
 import { useVouchersStore } from '../../store/vouchersStore';
 import { formatVoucherExpiry, resolveVoucherState } from '../../lib/loyaltyRules';
 import type { RewardsStackParamList } from '../../navigation/types';
@@ -62,7 +63,7 @@ export default function MyVouchersScreen() {
 
   return (
     <View style={styles.root}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" />
+      <PageBackground />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -71,6 +72,7 @@ export default function MyVouchersScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />
         }
       >
+        <PageFrame maxWidth={TEXT_COLUMN}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
           <Text style={styles.backText}>{t('rewards.backToCatalog')}</Text>
@@ -130,15 +132,15 @@ export default function MyVouchersScreen() {
         ) : null}
 
         <View style={{ height: 24 }} />
+        </PageFrame>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
   scrollView: { flex: 1 },
-  bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   scroll: { paddingHorizontal: 20 },
   backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 4 },
   backText: { fontSize: 16, color: Colors.textPrimary },

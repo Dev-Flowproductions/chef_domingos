@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   ActivityIndicator,
   TouchableOpacity,
   Alert,
@@ -15,7 +14,9 @@ import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
 import { useKeepAwake } from 'expo-keep-awake';
 import LoyaltyQrImage from '../../components/LoyaltyQrImage';
-import { Colors, Assets } from '../../lib/theme';
+import { Colors } from '../../lib/theme';
+import { PageBackground } from '../../components/ScreenWrapper';
+import { PageFrame, TEXT_COLUMN } from '../../components/PageFrame';
 import { buildLoyaltyQrPayload } from '../../lib/loyaltyQr';
 import { ensureLkmCardLinked } from '../../services/lkm/ensureCard';
 import { useAuthStore } from '../../store/authStore';
@@ -78,7 +79,7 @@ export default function GanharScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={Assets.bgIllustration} style={styles.bg} resizeMode="cover" pointerEvents="none" />
+      <PageBackground />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -88,6 +89,7 @@ export default function GanharScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+      <PageFrame maxWidth={TEXT_COLUMN}>
       <View style={styles.logoWrap}>
         <JDLogo size="small" />
       </View>
@@ -124,6 +126,7 @@ export default function GanharScreen() {
           </TouchableOpacity>
         </>
       )}
+      </PageFrame>
       </ScrollView>
     </View>
   );
@@ -133,13 +136,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+    overflow: 'hidden',
   },
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 24,
     alignItems: 'center',
   },
-  bg: { position: 'absolute', width: 874, height: 874, left: -274, top: 0, opacity: 0.4 },
   logoWrap: { alignItems: 'center', marginBottom: 16 },
   titleBlock: { alignItems: 'center', marginBottom: 32 },
   title: { fontSize: 34, fontWeight: '400', color: Colors.gold, textAlign: 'center', marginBottom: 16 },
@@ -154,6 +157,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#fff',
     alignItems: 'center',
+    alignSelf: 'center',
     justifyContent: 'center',
   },
   code: {
@@ -171,8 +175,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: Colors.gold,
+    alignSelf: 'center',
+    alignItems: 'center',
   },
-  copyBtnText: { color: Colors.gold, fontSize: 15, fontWeight: '600' },
+  copyBtnText: { color: Colors.gold, fontSize: 15, fontWeight: '600', textAlign: 'center' },
   messageBox: { alignItems: 'center', paddingHorizontal: 12, marginTop: 8 },
   messageText: { fontSize: 16, color: Colors.textPrimary, textAlign: 'center', lineHeight: 24 },
   messageHint: { fontSize: 14, color: 'rgba(45,45,45,0.7)', textAlign: 'center', lineHeight: 22, marginTop: 12 },
